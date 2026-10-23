@@ -13,6 +13,8 @@ as $$
     where p.id = (select auth.uid()) and p.role = 'admin'
   );
 $$;
+revoke execute on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
 
 create table if not exists public.tests (
   id uuid primary key default gen_random_uuid(),
@@ -36,11 +38,26 @@ create table if not exists public.test_questions (
     and jsonb_array_length(options) between 2 and 6
   ),
   image_path text,
+  question_type text not null default 'single_correct',
+  match_left jsonb,
   position integer not null check (position >= 0),
   unique (test_id, position)
 );
 
 alter table public.test_questions add column if not exists image_path text;
+alter table public.test_questions add column if not exists question_type text not null default 'single_correct';
+alter table public.test_questions add column if not exists match_left jsonb;
+alter table public.test_questions drop constraint if exists test_questions_question_type_check;
+alter table public.test_questions add constraint test_questions_question_type_check check (question_type in ('single_correct', 'multiple_correct', 'match_columns'));
+alter table public.test_questions drop constraint if exists test_questions_match_left_check;
+alter table public.test_questions add constraint test_questions_match_left_check check (
+  case when question_type = 'match_columns' then
+    case when jsonb_typeof(match_left) = 'array' then
+      jsonb_array_length(match_left) between 2 and 6
+      and jsonb_array_length(match_left) = jsonb_array_length(options)
+    else false end
+  else match_left is null end
+);
 
 -- Private question images: authenticated students can read signed images;
 -- only admins can upload or remove them.
@@ -75,8 +92,14 @@ create policy "admins delete test question images" on storage.objects for delete
 -- Answer keys are held in a separate table so students cannot fetch them.
 create table if not exists public.test_answers (
   question_id uuid primary key references public.test_questions(id) on delete cascade,
-  correct_option integer not null check (correct_option between 0 and 5)
+  correct_option integer check (correct_option between 0 and 5),
+  correct_answer jsonb
 );
+
+alter table public.test_answers add column if not exists correct_answer jsonb;
+alter table public.test_answers alter column correct_option drop not null;
+update public.test_answers set correct_answer = to_jsonb(correct_option) where correct_answer is null and correct_option is not null;
+alter table public.test_answers alter column correct_answer set not null;
 
 create table if not exists public.test_attempts (
   id uuid primary key default gen_random_uuid(),
@@ -104,15 +127,29 @@ drop policy if exists "published tests or admin read" on public.tests;
 create policy "published tests or admin read" on public.tests for select to authenticated
   using (published or (select public.is_admin()));
 drop policy if exists "admins manage tests" on public.tests;
-create policy "admins manage tests" on public.tests for all to authenticated
+drop policy if exists "admins insert tests" on public.tests;
+create policy "admins insert tests" on public.tests for insert to authenticated
+  with check ((select public.is_admin()));
+drop policy if exists "admins update tests" on public.tests;
+create policy "admins update tests" on public.tests for update to authenticated
   using ((select public.is_admin())) with check ((select public.is_admin()));
+drop policy if exists "admins delete tests" on public.tests;
+create policy "admins delete tests" on public.tests for delete to authenticated
+  using ((select public.is_admin()));
 
 drop policy if exists "published questions or admin read" on public.test_questions;
 create policy "published questions or admin read" on public.test_questions for select to authenticated
   using (exists (select 1 from public.tests t where t.id = test_id and (t.published or (select public.is_admin()))));
 drop policy if exists "admins manage questions" on public.test_questions;
-create policy "admins manage questions" on public.test_questions for all to authenticated
+drop policy if exists "admins insert questions" on public.test_questions;
+create policy "admins insert questions" on public.test_questions for insert to authenticated
+  with check ((select public.is_admin()));
+drop policy if exists "admins update questions" on public.test_questions;
+create policy "admins update questions" on public.test_questions for update to authenticated
   using ((select public.is_admin())) with check ((select public.is_admin()));
+drop policy if exists "admins delete questions" on public.test_questions;
+create policy "admins delete questions" on public.test_questions for delete to authenticated
+  using ((select public.is_admin()));
 
 drop policy if exists "admins manage answer keys" on public.test_answers;
 create policy "admins manage answer keys" on public.test_answers for all to authenticated
@@ -122,7 +159,10 @@ drop policy if exists "users read own attempts or admin" on public.test_attempts
 create policy "users read own attempts or admin" on public.test_attempts for select to authenticated
   using (user_id = (select auth.uid()) or (select public.is_admin()));
 
-create or replace function public.submit_test(p_test_id uuid, p_question_ids uuid[], p_answers integer[])
+drop function if exists public.submit_test(uuid, uuid[], integer[]);
+drop function if exists public.submit_test(uuid, uuid[], jsonb);
+
+create function public.submit_test(p_test_id uuid, p_question_ids uuid[], p_answers jsonb)
 returns table(score integer, total integer)
 language plpgsql
 security definer
@@ -131,15 +171,29 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_total integer;
-  v_score integer;
+  v_score integer := 0;
+  v_index integer;
+  v_question_id uuid;
+  v_type text;
+  v_options jsonb;
+  v_match_left jsonb;
+  v_correct jsonb;
+  v_answer jsonb;
+  v_entry record;
+  v_numeric numeric;
+  v_user_set integer[];
+  v_correct_set integer[];
 begin
   if v_user_id is null then
     raise exception 'Sign in to submit a test.' using errcode = '28000';
   end if;
   if p_question_ids is null or p_answers is null
-     or cardinality(p_question_ids) = 0
-     or cardinality(p_question_ids) <> cardinality(p_answers) then
-    raise exception 'Submit one answer for every question.' using errcode = '22023';
+     or jsonb_typeof(p_answers) is distinct from 'array' then
+    raise exception 'Submit one response for every question.' using errcode = '22023';
+  end if;
+  if cardinality(p_question_ids) = 0
+     or cardinality(p_question_ids) <> jsonb_array_length(p_answers) then
+    raise exception 'Submit one response for every question.' using errcode = '22023';
   end if;
   if not exists (select 1 from public.tests t where t.id = p_test_id and t.published) then
     raise exception 'This test is unavailable.' using errcode = '22023';
@@ -149,25 +203,104 @@ begin
   from public.test_questions q
   where q.test_id = p_test_id;
   if v_total = 0 or v_total <> cardinality(p_question_ids)
-     or (select count(distinct submitted.question_id) from unnest(p_question_ids) as submitted(question_id)) <> v_total then
+     or (select count(distinct submitted.question_id) from unnest(p_question_ids) as submitted(question_id)) <> v_total
+     or (select count(*) from unnest(p_question_ids) as submitted(question_id)
+         left join public.test_questions q on q.id = submitted.question_id and q.test_id = p_test_id
+         where q.id is null) > 0 then
     raise exception 'Question list does not match this test.' using errcode = '22023';
   end if;
-  if exists (
-    select 1
-    from unnest(p_question_ids, p_answers) as submitted(question_id, answer)
-    left join public.test_questions q on q.id = submitted.question_id and q.test_id = p_test_id
-    where q.id is null or (submitted.answer is not null and (submitted.answer < 0 or submitted.answer >= jsonb_array_length(q.options)))
-  ) then
-    raise exception 'One or more answers are invalid.' using errcode = '22023';
-  end if;
-
-  select count(*) filter (where a.correct_option = submitted.answer)::integer
-  into v_score
-  from unnest(p_question_ids, p_answers) as submitted(question_id, answer)
-  join public.test_answers a on a.question_id = submitted.question_id;
   if (select count(*) from public.test_answers a where a.question_id = any(p_question_ids)) <> v_total then
     raise exception 'Answer key is not configured for this test.' using errcode = '22023';
   end if;
+
+  for v_index in 1..v_total loop
+    v_question_id := p_question_ids[v_index];
+    v_answer := p_answers -> (v_index - 1);
+    select q.question_type, q.options, q.match_left, a.correct_answer
+      into v_type, v_options, v_match_left, v_correct
+      from public.test_questions q
+      join public.test_answers a on a.question_id = q.id
+      where q.id = v_question_id and q.test_id = p_test_id;
+
+    if v_answer is null or v_answer = 'null'::jsonb then
+      continue;
+    end if;
+
+    if v_type = 'single_correct' then
+      if jsonb_typeof(v_answer) <> 'number' then
+        raise exception 'A single-correct answer must be one option.' using errcode = '22023';
+      end if;
+      v_numeric := (v_answer #>> '{}')::numeric;
+      if v_numeric <> trunc(v_numeric) or v_numeric < 0 or v_numeric >= jsonb_array_length(v_options) then
+        raise exception 'A selected option is invalid.' using errcode = '22023';
+      end if;
+      if v_correct is null or jsonb_typeof(v_correct) is distinct from 'number' then
+        raise exception 'The single-correct answer key is invalid.' using errcode = '22023';
+      end if;
+      v_numeric := (v_correct #>> '{}')::numeric;
+      if v_numeric <> trunc(v_numeric) or v_numeric < 0 or v_numeric >= jsonb_array_length(v_options) then
+        raise exception 'The single-correct answer key is invalid.' using errcode = '22023';
+      end if;
+      if v_answer = v_correct then v_score := v_score + 1; end if;
+
+    elsif v_type = 'multiple_correct' then
+      if jsonb_typeof(v_answer) is distinct from 'array' then
+        raise exception 'Select at least one answer.' using errcode = '22023';
+      end if;
+      if jsonb_array_length(v_answer) = 0 then
+        raise exception 'Select at least one answer.' using errcode = '22023';
+      end if;
+      for v_entry in select value from jsonb_array_elements(v_answer) loop
+        if jsonb_typeof(v_entry.value) <> 'number' then
+          raise exception 'A selected option is invalid.' using errcode = '22023';
+        end if;
+        v_numeric := (v_entry.value #>> '{}')::numeric;
+        if v_numeric <> trunc(v_numeric) or v_numeric < 0 or v_numeric >= jsonb_array_length(v_options) then
+          raise exception 'A selected option is invalid.' using errcode = '22023';
+        end if;
+      end loop;
+      if (select count(*) from jsonb_array_elements(v_answer)) <> (select count(distinct value::text) from jsonb_array_elements(v_answer)) then
+        raise exception 'A selected option is repeated.' using errcode = '22023';
+      end if;
+      if v_correct is null or jsonb_typeof(v_correct) is distinct from 'array' then
+        raise exception 'The multiple-correct answer key is invalid.' using errcode = '22023';
+      end if;
+      if jsonb_array_length(v_correct) = 0 then
+        raise exception 'The multiple-correct answer key is invalid.' using errcode = '22023';
+      end if;
+      select array_agg(value::integer order by value::integer) into v_user_set from jsonb_array_elements_text(v_answer);
+      select array_agg(value::integer order by value::integer) into v_correct_set from jsonb_array_elements_text(v_correct);
+      if v_user_set = v_correct_set then v_score := v_score + 1; end if;
+
+    elsif v_type = 'match_columns' then
+      if jsonb_typeof(v_answer) <> 'object' or jsonb_typeof(v_match_left) <> 'array'
+         or jsonb_array_length(v_match_left) < 2
+         or jsonb_array_length(v_match_left) <> jsonb_array_length(v_options) then
+        raise exception 'The matching response is invalid.' using errcode = '22023';
+      end if;
+      for v_entry in select key, value from jsonb_each(v_answer) loop
+        if v_entry.key !~ '^[0-9]+$' or jsonb_typeof(v_entry.value) <> 'number' then
+          raise exception 'A column match is invalid.' using errcode = '22023';
+        end if;
+        if v_entry.key::integer >= jsonb_array_length(v_match_left) then
+          raise exception 'A column match is invalid.' using errcode = '22023';
+        end if;
+        v_numeric := (v_entry.value #>> '{}')::numeric;
+        if v_numeric <> trunc(v_numeric) or v_numeric < 0 or v_numeric >= jsonb_array_length(v_options) then
+          raise exception 'A column match is invalid.' using errcode = '22023';
+        end if;
+      end loop;
+      if (select count(*) from jsonb_each(v_answer)) <> (select count(distinct value::text) from jsonb_each(v_answer)) then
+        raise exception 'Each Column II choice can be used only once.' using errcode = '22023';
+      end if;
+      if v_correct is null or jsonb_typeof(v_correct) <> 'object' then
+        raise exception 'The matching answer key is invalid.' using errcode = '22023';
+      end if;
+      if v_answer = v_correct then v_score := v_score + 1; end if;
+    else
+      raise exception 'This question type is unsupported.' using errcode = '22023';
+    end if;
+  end loop;
 
   insert into public.test_attempts(test_id, user_id, score, total)
   values (p_test_id, v_user_id, v_score, v_total);
@@ -175,6 +308,6 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_test(uuid, uuid[], integer[]) from public, anon;
-grant execute on function public.submit_test(uuid, uuid[], integer[]) to authenticated;
+revoke all on function public.submit_test(uuid, uuid[], jsonb) from public, anon;
+grant execute on function public.submit_test(uuid, uuid[], jsonb) to authenticated;
 

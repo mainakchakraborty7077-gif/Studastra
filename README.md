@@ -9,7 +9,7 @@ This is a deployable starting point for a cosmic-style study app. It uses the ex
 - Database-backed study goals and notes
 - Admin sign-in (`/admin/login`) with a database role check
 - Admin overview (`/admin`) with a read-only view of recent study entries
-- Admin-authored multiple-choice tests at `/admin/tests`
+- Admin-authored single-correct, multiple-correct, and match-the-columns questions at `/admin/tests`
 - Student practice tests in a JEE-style CBT portal with a configurable countdown, question palette, Mark for Review, Save & Next, and saved scores
 - Optional private question images uploaded by admins
 - Supabase Row Level Security (RLS) policies
@@ -17,7 +17,7 @@ This is a deployable starting point for a cosmic-style study app. It uses the ex
 
 ## 1. Create Supabase project
 1. Create a project in Supabase.
-2. In **SQL Editor**, run the full script `supabase/schema.sql`. To enable practice tests on an existing project, run `supabase/tests.sql` after it. If you already installed practice tests, rerun the updated `supabase/tests.sql` to add the timer and private image storage setup; it is safe to rerun.
+2. In **SQL Editor**, run the full script `supabase/schema.sql`. To enable practice tests on an existing project, run `supabase/tests.sql` after it. If practice tests are already installed, rerun the updated `supabase/tests.sql` to add configurable timers, private question images, multiple-correct and match-the-columns question support; it is safe to rerun.
 3. In **Project Settings → API** (or API Keys), copy the project URL and publishable/anon key.
 4. Copy `.env.example` to `.env.local` and set:
    ```

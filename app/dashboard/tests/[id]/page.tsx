@@ -7,9 +7,11 @@ import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Flag, Im
 import { createClient } from "@/lib/supabase/client";
 
 type TestInfo = { id: string; title: string; description: string; duration_minutes: number };
-type Question = { id: string; prompt: string; options: string[]; position: number; image_path: string | null; imageUrl?: string };
+type QuestionType = "single_correct" | "multiple_correct" | "match_columns";
+type QuestionAnswer = number | number[] | Record<string, number>;
+type Question = { id: string; prompt: string; question_type: QuestionType; options: string[]; match_left: string[] | null; position: number; image_path: string | null; imageUrl?: string };
 type Result = { score: number; total: number };
-type SavedState = { answers: Record<string, number>; marked: string[]; visited?: string[]; current: number; expiresAt: number };
+type SavedState = { answers: Record<string, QuestionAnswer>; marked: string[]; visited?: string[]; current: number; expiresAt: number };
 
 const bucket = "test-question-images";
 
@@ -18,7 +20,7 @@ export default function TakeTestPage() {
   const testId = params.id;
   const [test, setTest] = useState<TestInfo | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
   const [marked, setMarked] = useState<string[]>([]);
   const [visited, setVisited] = useState<string[]>([]);
   const [current, setCurrent] = useState(0);
@@ -41,7 +43,7 @@ export default function TakeTestPage() {
       if (!user) { router.replace("/auth"); return; }
       const { data: testRow, error: testError } = await supabase.from("tests").select("id,title,description,duration_minutes").eq("id", testId).eq("published", true).single();
       if (testError) throw testError;
-      const { data: questionRows, error: questionError } = await supabase.from("test_questions").select("id,prompt,options,position,image_path").eq("test_id", testId).order("position");
+      const { data: questionRows, error: questionError } = await supabase.from("test_questions").select("id,prompt,question_type,options,match_left,position,image_path").eq("test_id", testId).order("position");
       if (questionError) throw questionError;
       if (!questionRows?.length) throw new Error("This test has no questions yet.");
       const rows = questionRows as Question[];
@@ -139,13 +141,45 @@ export default function TakeTestPage() {
     setAnswers((value) => { const next = { ...value }; delete next[question.id]; return next; });
   }
 
+  function toggleMultipleOption(questionId: string, optionIndex: number) {
+    setAnswers((currentAnswers) => {
+      const selected = Array.isArray(currentAnswers[questionId]) ? currentAnswers[questionId] as number[] : [];
+      const next = selected.includes(optionIndex) ? selected.filter((item) => item !== optionIndex) : [...selected, optionIndex].sort((a, b) => a - b);
+      const updated = { ...currentAnswers };
+      if (next.length) updated[questionId] = next;
+      else delete updated[questionId];
+      return updated;
+    });
+  }
+
+  function setMatch(questionId: string, leftIndex: number, rightIndex: number | null) {
+    setAnswers((currentAnswers) => {
+      const selected = currentAnswers[questionId] && !Array.isArray(currentAnswers[questionId]) && typeof currentAnswers[questionId] === "object"
+        ? { ...currentAnswers[questionId] as Record<string, number> }
+        : {};
+      if (rightIndex === null) delete selected[String(leftIndex)];
+      else selected[String(leftIndex)] = rightIndex;
+      const updated = { ...currentAnswers };
+      if (Object.keys(selected).length) updated[questionId] = selected;
+      else delete updated[questionId];
+      return updated;
+    });
+  }
+
+  function hasAnswer(question: Question) {
+    const answer = answers[question.id];
+    if (question.question_type === "single_correct") return typeof answer === "number";
+    if (question.question_type === "multiple_correct") return Array.isArray(answer) && answer.length > 0;
+    return Boolean(answer && !Array.isArray(answer) && typeof answer === "object" && Object.keys(answer).length > 0);
+  }
+
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     setShowSubmit(true);
   }
 
   const question = questions[current];
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = questions.filter(hasAnswer).length;
   const unansweredCount = Math.max(0, questions.length - answeredCount);
   const clock = secondsLeft === null ? "--:--" : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
@@ -154,13 +188,25 @@ export default function TakeTestPage() {
     {result ? <section className="exam-result"><span className="pill">EXAM COMPLETE</span><h1>Your score: {result.score} / {result.total}</h1><p className="muted">Your result is saved to your account.</p><Link className="btn primary" href="/dashboard/tests">Back to practice tests</Link></section> : <div className="exam-layout">
       <section className="exam-main">
         <div className="exam-subjectbar"><span className="exam-subject">Practice Test <Info size={13}/></span><span className="exam-subject-help">{test?.title}</span></div>
-        <div className="exam-sectionbar"><span>Q. No: {questions.length ? current + 1 : "—"} &nbsp; · &nbsp; Test size: {questions.length}</span><span>Q. Type : <b>MCQ Single</b></span></div>
+        <div className="exam-sectionbar"><span>Q. No: {questions.length ? current + 1 : "—"} &nbsp; · &nbsp; Test size: {questions.length}</span><span>Q. Type : <b>{question?.question_type === "multiple_correct" ? "MCQ Multiple" : question?.question_type === "match_columns" ? "Match Columns" : "MCQ Single"}</b></span></div>
         {message && <p className="muted" role="status">{message}</p>}
         {question && <form onSubmit={onSubmit}>
-          <div className="exam-question-head"><span className="exam-question-count">Question {current + 1}</span><span className="muted">Select one option</span></div>
+          <div className="exam-question-head"><span className="exam-question-count">Question {current + 1}</span><span className="muted">{question.question_type === "multiple_correct" ? "Select all correct options" : question.question_type === "match_columns" ? "Match each item from Column I" : "Select one option"}</span></div>
           <h1 className="exam-prompt">{question.prompt}</h1>
           {question.image_path && (question.imageUrl ? <img className="exam-image" src={question.imageUrl} alt={`Image for question ${current + 1}`} /> : <p className="muted"><ImageIcon size={15}/> Question image unavailable.</p>)}
-          <div className="exam-options">{(question.options as string[]).map((option, index) => <button className={`exam-option ${answers[question.id] === index ? "selected" : ""}`} key={index} type="button" onClick={() => setAnswers((value) => ({ ...value, [question.id]: index }))} aria-pressed={answers[question.id] === index}><span className="exam-option-key">{String.fromCharCode(65 + index)}</span><span>{option}</span>{answers[question.id] === index && <Check size={18} className="exam-option-check"/>}</button>)}</div>
+          {question.question_type === "match_columns" ? <div className="exam-match-grid">
+            <div className="exam-match-head"><b>Column I</b><b>Match with Column II</b></div>
+            {(question.match_left || []).map((item, index) => {
+              const matchAnswer = answers[question.id] && !Array.isArray(answers[question.id]) && typeof answers[question.id] === "object" ? answers[question.id] as Record<string, number> : {};
+              const usedByAnotherRow = new Set(Object.entries(matchAnswer).filter(([leftIndex]) => leftIndex !== String(index)).map(([, rightIndex]) => rightIndex));
+              return <label className="exam-match-row" key={index}><span><b>{String.fromCharCode(65 + index)}.</b> {item}</span><select className="exam-match-select" aria-label={`Match Column I item ${index + 1}`} value={matchAnswer[String(index)] ?? ""} onChange={(event) => setMatch(question.id, index, event.target.value === "" ? null : Number(event.target.value))}><option value="">Select a match</option>{question.options.map((option, optionIndex) => <option key={optionIndex} value={optionIndex} disabled={usedByAnotherRow.has(optionIndex)}>{String.fromCharCode(65 + optionIndex)}. {option}</option>)}</select></label>;
+            })}
+          </div> : <div className="exam-options">{(question.options as string[]).map((option, index) => {
+            const selected = question.question_type === "multiple_correct"
+              ? Array.isArray(answers[question.id]) && (answers[question.id] as number[]).includes(index)
+              : answers[question.id] === index;
+            return <button className={`exam-option ${selected ? "selected" : ""}`} key={index} type="button" onClick={() => question.question_type === "multiple_correct" ? toggleMultipleOption(question.id, index) : setAnswers((value) => ({ ...value, [question.id]: index }))} aria-pressed={selected}><span className={`exam-option-key ${question.question_type === "multiple_correct" ? "checkbox" : ""}`}>{String.fromCharCode(65 + index)}</span><span>{option}</span>{selected && <Check size={18} className="exam-option-check"/>}</button>;
+          })}</div>}
           <div className="exam-actionbar"><div className="exam-action-left"><button className="exam-action secondary" type="button" onClick={markForReviewAndNext}><Flag size={15}/> Mark for Review &amp; Next</button><button className="exam-action secondary" type="button" onClick={clearResponse}><Trash2 size={15}/> Clear Response</button></div><div className="exam-action-right"><button className="exam-action primary" type="button" disabled={current === 0} onClick={() => goToQuestion(current - 1)}><ChevronLeft size={15}/> Previous</button><button className="exam-action primary" type="button" onClick={() => goToQuestion(current + 1)} disabled={current === questions.length - 1}>Save &amp; Next <ChevronRight size={15}/></button></div></div>
           <p className="exam-save-note">Your selected answer is saved automatically on this device.</p>
         </form>}
