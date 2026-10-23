@@ -47,6 +47,13 @@ create table if not exists public.test_questions (
 alter table public.test_questions add column if not exists image_path text;
 alter table public.test_questions add column if not exists question_type text not null default 'single_correct';
 alter table public.test_questions add column if not exists match_left jsonb;
+-- An attached image can be the complete question; text remains optional only when the image exists.
+alter table public.test_questions drop constraint if exists test_questions_prompt_check;
+alter table public.test_questions drop constraint if exists test_questions_prompt_or_image_check;
+alter table public.test_questions add constraint test_questions_prompt_or_image_check check (
+  char_length(prompt) between 0 and 2000
+  and (char_length(btrim(prompt)) > 0 or image_path is not null)
+);
 alter table public.test_questions drop constraint if exists test_questions_question_type_check;
 alter table public.test_questions add constraint test_questions_question_type_check check (question_type in ('single_correct', 'multiple_correct', 'match_columns'));
 alter table public.test_questions drop constraint if exists test_questions_match_left_check;

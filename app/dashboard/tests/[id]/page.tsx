@@ -192,7 +192,7 @@ export default function TakeTestPage() {
         {message && <p className="muted" role="status">{message}</p>}
         {question && <form onSubmit={onSubmit}>
           <div className="exam-question-head"><span className="exam-question-count">Question {current + 1}</span><span className="muted">{question.question_type === "multiple_correct" ? "Select all correct options" : question.question_type === "match_columns" ? "Match each item from Column I" : "Select one option"}</span></div>
-          <h1 className="exam-prompt">{question.prompt}</h1>
+          {question.prompt.trim() && <h1 className="exam-prompt">{question.prompt}</h1>}
           {question.image_path && (question.imageUrl ? <img className="exam-image" src={question.imageUrl} alt={`Image for question ${current + 1}`} /> : <p className="muted"><ImageIcon size={15}/> Question image unavailable.</p>)}
           {question.question_type === "match_columns" ? <div className="exam-match-grid">
             <div className="exam-match-head"><b>Column I</b><b>Match with Column II</b></div>

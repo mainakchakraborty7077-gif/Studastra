@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 type QuestionType = "single_correct" | "multiple_correct" | "match_columns";
 type QuestionDraft = { prompt: string; questionType: QuestionType; options: string[]; correctOption: number; correctOptions: number[]; matchLeft: string[]; correctMatches: number[]; image: File | null };
 type TestRow = { id: string; title: string; description: string; published: boolean; created_at: string; duration_minutes: number };
-const newQuestion = (): QuestionDraft => ({ prompt: "", questionType: "single_correct", options: ["", "", "", ""], correctOption: 0, correctOptions: [], matchLeft: ["", "", "", ""], correctMatches: [-1, -1, -1, -1], image: null });
+const newQuestion = (): QuestionDraft => ({ prompt: "", questionType: "single_correct", options: ["", "", "", ""], correctOption: -1, correctOptions: [], matchLeft: ["", "", "", ""], correctMatches: [-1, -1, -1, -1], image: null });
 
 export default function AdminTestsPage() {
   const [authorized, setAuthorized] = useState(false);
@@ -20,6 +20,7 @@ export default function AdminTestsPage() {
   const [questions, setQuestions] = useState<QuestionDraft[]>([newQuestion()]);
   const [message, setMessage] = useState("Checking administrator access…");
   const [busy, setBusy] = useState(false);
+  const [deletingTestId, setDeletingTestId] = useState<string | null>(null);
   const router = useRouter();
 
   async function load() {
@@ -59,7 +60,7 @@ export default function AdminTestsPage() {
       const options = question.options.filter((_, j) => j !== optionIndex);
       const matchLeft = question.matchLeft.filter((_, j) => j !== optionIndex);
       const correctMatches = question.correctMatches.filter((_, j) => j !== optionIndex).map((match) => match === optionIndex ? -1 : match > optionIndex ? match - 1 : match);
-      return { ...question, options, matchLeft, correctMatches, correctOption: question.correctOption === optionIndex ? 0 : question.correctOption > optionIndex ? question.correctOption - 1 : question.correctOption, correctOptions: question.correctOptions.filter((item) => item !== optionIndex).map((item) => item > optionIndex ? item - 1 : item) };
+      return { ...question, options, matchLeft, correctMatches, correctOption: question.correctOption === optionIndex ? -1 : question.correctOption > optionIndex ? question.correctOption - 1 : question.correctOption, correctOptions: question.correctOptions.filter((item) => item !== optionIndex).map((item) => item > optionIndex ? item - 1 : item) };
     }));
   }
 
@@ -75,17 +76,47 @@ export default function AdminTestsPage() {
       : question));
   }
 
+  async function deleteTest(test: TestRow) {
+    if (deletingTestId || busy) return;
+    const confirmed = window.confirm(`Delete “${test.title}”?\n\nThis permanently removes the test, its questions and answer keys, attached question images, and saved student attempts and scores. This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingTestId(test.id);
+    setMessage("");
+    const supabase = createClient();
+    try {
+      const { data: questionRows, error: questionError } = await supabase.from("test_questions").select("image_path").eq("test_id", test.id);
+      if (questionError) throw questionError;
+      const imagePaths = (questionRows || []).map((question) => question.image_path).filter((path): path is string => typeof path === "string" && path.length > 0);
+      if (imagePaths.length) {
+        const { error: imageError } = await supabase.storage.from("test-question-images").remove(imagePaths);
+        if (imageError) throw imageError;
+      }
+
+      const { data: deletedRows, error: deleteError } = await supabase.from("tests").delete().eq("id", test.id).select("id");
+      if (deleteError) throw deleteError;
+      if (!deletedRows?.length) throw new Error("The test was not deleted. Please check administrator access and try again.");
+      setTests((current) => current.filter((item) => item.id !== test.id));
+      setMessage(`Deleted “${test.title}” and its related questions, answer keys, images, and student results.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not delete this test.");
+    } finally {
+      setDeletingTestId(null);
+    }
+  }
+
   async function createTest(event: FormEvent) {
     event.preventDefault();
     const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     const invalidQuestion = (q: QuestionDraft) => {
-      if (!q.prompt.trim() || q.options.length < 2 || q.options.length > 6 || q.options.some((option) => !option.trim())) return true;
-      if (q.questionType === "multiple_correct") return q.correctOptions.length === 0;
-      if (q.questionType === "match_columns") return q.matchLeft.length !== q.options.length || q.matchLeft.some((item) => !item.trim()) || q.correctMatches.some((match) => match < 0) || new Set(q.correctMatches).size !== q.correctMatches.length;
+      if ((!q.prompt.trim() && !q.image) || q.prompt.length > 2000 || q.options.length < 2 || q.options.length > 6 || q.options.some((option) => !option.trim())) return true;
+      if (q.questionType === "single_correct") return q.correctOption < 0 || q.correctOption >= q.options.length;
+      if (q.questionType === "multiple_correct") return q.correctOptions.length === 0 || q.correctOptions.some((answer) => answer < 0 || answer >= q.options.length);
+      if (q.questionType === "match_columns") return q.matchLeft.length !== q.options.length || q.matchLeft.some((item) => !item.trim()) || q.correctMatches.some((match) => match < 0 || match >= q.options.length) || new Set(q.correctMatches).size !== q.correctMatches.length;
       return false;
     };
     if (questions.length === 0 || questions.some((q) => invalidQuestion(q) || (q.image && (!allowedImageTypes.includes(q.image.type) || q.image.size > 5 * 1024 * 1024)))) {
-      setMessage("Complete every question. Choose at least one correct answer, or fill and match both columns. Images must be JPG, PNG, WebP or GIF under 5 MB.");
+      setMessage("Each question needs text or an image. Fill all choices and select the correct answer or matches. Images must be JPG, PNG, WebP or GIF under 5 MB.");
       return;
     }
     setBusy(true); setMessage("");
@@ -143,8 +174,8 @@ export default function AdminTestsPage() {
           <label className="label" htmlFor="test-duration">Exam duration (minutes)</label><input className="input" id="test-duration" type="number" min={1} max={300} step={1} value={durationMinutes} onChange={(e) => setDurationMinutes(Math.min(300, Math.max(1, Number(e.target.value) || 1)))} required />
           {questions.map((question, questionIndex) => <fieldset className="panel stack" key={questionIndex} style={{ padding: 16 }}>
             <legend className="label">Question {questionIndex + 1}</legend>
-            <label className="label" htmlFor={`prompt-${questionIndex}`}>Question</label><textarea className="input textarea" id={`prompt-${questionIndex}`} value={question.prompt} onChange={(e) => updateQuestion(questionIndex, { prompt: e.target.value })} maxLength={2000} required />
-            <label className="label" htmlFor={`image-${questionIndex}`}><ImagePlus size={14} style={{ display: "inline", verticalAlign: "middle" }}/> Question image (optional, JPG/PNG/WebP/GIF, up to 5 MB)</label><input className="input" id={`image-${questionIndex}`} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => updateQuestion(questionIndex, { image: e.target.files?.[0] || null })} />{question.image && <span className="muted">Selected: {question.image.name}</span>}
+            <label className="label" htmlFor={`prompt-${questionIndex}`}>Question text (optional when an image is selected)</label><textarea className="input textarea" id={`prompt-${questionIndex}`} value={question.prompt} onChange={(e) => updateQuestion(questionIndex, { prompt: e.target.value })} maxLength={2000} required={!question.image} />
+            <label className="label" htmlFor={`image-${questionIndex}`}><ImagePlus size={14} style={{ display: "inline", verticalAlign: "middle" }}/> Question image (JPG/JPEG, PNG, WebP or GIF; up to 5 MB)</label><input className="input" id={`image-${questionIndex}`} type="file" accept="image/jpeg,.jpg,.jpeg,image/png,.png,image/webp,.webp,image/gif,.gif" required={!question.prompt.trim()} onChange={(e) => updateQuestion(questionIndex, { image: e.target.files?.[0] || null })} />{question.image && <span className="muted">Selected: {question.image.name}</span>}
             <label className="label" htmlFor={`question-type-${questionIndex}`}>Question type</label>
             <select className="input" id={`question-type-${questionIndex}`} value={question.questionType} onChange={(e) => updateQuestion(questionIndex, { questionType: e.target.value as QuestionType })}>
               <option value="single_correct">Single correct</option><option value="multiple_correct">Multiple correct</option><option value="match_columns">Match the columns</option>
@@ -193,10 +224,10 @@ export default function AdminTestsPage() {
               </section>
               <div className="match-editor-footer"><span>Each Column I item must use a different Column II choice.</span>{question.options.length < 6 && <button className="btn small" type="button" onClick={() => addOption(questionIndex)}><Plus size={14}/> Add pair</button>}</div>
             </div> : <>
-              <div className="answer-editor-heading"><h4>Answer choices</h4><p>{question.questionType === "single_correct" ? "Select the radio button beside the correct answer." : "Select every correct answer."}</p></div>
+              <div className="answer-editor-heading"><h4>Answer choices</h4><p>{question.questionType === "single_correct" ? "Select the correct answer. It is saved privately for scoring." : "Select every correct answer. The key is saved privately for scoring."}</p></div>
               {question.options.map((option, optionIndex) => <div key={optionIndex}>
                 <label className="label" htmlFor={`option-${questionIndex}-${optionIndex}`}>Choice {String.fromCharCode(65 + optionIndex)}{question.questionType === "single_correct" && question.correctOption === optionIndex ? " · correct answer" : question.questionType === "multiple_correct" && question.correctOptions.includes(optionIndex) ? " · correct answer" : ""}</label>
-                <div className="row">{question.questionType === "single_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="radio" name={`correct-${questionIndex}`} checked={question.correctOption === optionIndex} onChange={() => updateQuestion(questionIndex, { correctOption: optionIndex })} />}{question.questionType === "multiple_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="checkbox" checked={question.correctOptions.includes(optionIndex)} onChange={(e) => updateQuestion(questionIndex, { correctOptions: e.target.checked ? [...question.correctOptions, optionIndex] : question.correctOptions.filter((item) => item !== optionIndex) })} />}<input className="input" id={`option-${questionIndex}-${optionIndex}`} value={option} onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)} maxLength={500} required />{question.options.length > 2 && <button className="btn small" type="button" onClick={() => removeOption(questionIndex, optionIndex)} aria-label={`Remove choice ${optionIndex + 1}`}><Trash2 size={14}/></button>}</div>
+                <div className="row">{question.questionType === "single_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="radio" name={`correct-${questionIndex}`} checked={question.correctOption === optionIndex} onChange={() => updateQuestion(questionIndex, { correctOption: optionIndex })} required />}{question.questionType === "multiple_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="checkbox" checked={question.correctOptions.includes(optionIndex)} onChange={(e) => updateQuestion(questionIndex, { correctOptions: e.target.checked ? [...question.correctOptions, optionIndex] : question.correctOptions.filter((item) => item !== optionIndex) })} />}<input className="input" id={`option-${questionIndex}-${optionIndex}`} value={option} onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)} maxLength={500} required />{question.options.length > 2 && <button className="btn small" type="button" onClick={() => removeOption(questionIndex, optionIndex)} aria-label={`Remove choice ${optionIndex + 1}`}><Trash2 size={14}/></button>}</div>
               </div>)}
               {question.options.length < 6 && <button className="btn small" type="button" onClick={() => addOption(questionIndex)}><Plus size={14}/> Add choice</button>}
             </>}
@@ -205,10 +236,11 @@ export default function AdminTestsPage() {
           {questions.length < 20 && <button className="btn" type="button" onClick={() => setQuestions((current) => [...current, newQuestion()])}><Plus size={15}/> Add question</button>}
           <button className="btn primary" disabled={busy || !title.trim()}>{busy ? "Publishing…" : "Publish test"}</button>
         </form>
-        <div className="panel"><h3>Published tests</h3>{tests.length === 0 ? <div className="empty">No tests yet. Create one to get started.</div> : tests.map((test) => <article className="resource" key={test.id}>
-          <div className="row between"><b>{test.title}</b><span className="pill">{test.published ? "Published" : "Draft"}</span></div>
+        <div className="panel"><h3>Your tests</h3>{tests.length === 0 ? <div className="empty">No tests yet. Create one to get started.</div> : tests.map((test) => <article className="resource" key={test.id}>
+          <div className="test-row-heading"><b>{test.title}</b><span className="pill">{test.published ? "Published" : "Draft"}</span></div>
           <p>{test.duration_minutes} minute exam · {new Date(test.created_at).toLocaleDateString()}</p>
-          <p>{test.published ? "Published" : "Draft"}</p>{test.description && <p>{test.description}</p>}
+          {test.description && <p>{test.description}</p>}
+          <button className="test-delete-button" type="button" disabled={busy || deletingTestId !== null} onClick={() => void deleteTest(test)} aria-label={`Delete ${test.title}`}><Trash2 size={14}/>{deletingTestId === test.id ? "Deleting…" : "Delete test"}</button>
         </article>)}</div>
       </div>}
     </section>
