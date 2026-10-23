@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ImagePlus, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type QuestionType = "single_correct" | "multiple_correct" | "match_columns";
@@ -58,7 +58,7 @@ export default function AdminTestsPage() {
       if (i !== questionIndex || question.options.length <= 2) return question;
       const options = question.options.filter((_, j) => j !== optionIndex);
       const matchLeft = question.matchLeft.filter((_, j) => j !== optionIndex);
-      const correctMatches = question.correctMatches.filter((_, j) => j !== optionIndex).map((match) => match > optionIndex ? match - 1 : match);
+      const correctMatches = question.correctMatches.filter((_, j) => j !== optionIndex).map((match) => match === optionIndex ? -1 : match > optionIndex ? match - 1 : match);
       return { ...question, options, matchLeft, correctMatches, correctOption: question.correctOption === optionIndex ? 0 : question.correctOption > optionIndex ? question.correctOption - 1 : question.correctOption, correctOptions: question.correctOptions.filter((item) => item !== optionIndex).map((item) => item > optionIndex ? item - 1 : item) };
     }));
   }
@@ -149,22 +149,57 @@ export default function AdminTestsPage() {
             <select className="input" id={`question-type-${questionIndex}`} value={question.questionType} onChange={(e) => updateQuestion(questionIndex, { questionType: e.target.value as QuestionType })}>
               <option value="single_correct">Single correct</option><option value="multiple_correct">Multiple correct</option><option value="match_columns">Match the columns</option>
             </select>
-            {question.questionType === "match_columns" && <div className="panel stack" style={{ padding: 14 }}>
-              <h4 style={{ margin: 0 }}>Match each Column I item with one Column II choice</h4>
-              <div className="exam-match-admin-head"><b>Column I</b><b>Column II choices</b><b>Correct match</b></div>
-              {question.matchLeft.map((item, itemIndex) => <div className="exam-match-admin-row" key={itemIndex}>
-                <span className="muted">{String.fromCharCode(65 + itemIndex)}.</span><input className="input" aria-label={`Column I item ${itemIndex + 1}`} value={item} onChange={(e) => updateMatchLeft(questionIndex, itemIndex, e.target.value)} placeholder={`Item ${itemIndex + 1}`} required />
-                <select className="input" aria-label={`Correct match for item ${itemIndex + 1}`} value={question.correctMatches[itemIndex]} onChange={(e) => updateMatchTarget(questionIndex, itemIndex, Number(e.target.value))} required>
-                  <option value={-1} disabled>Select a match</option>{question.options.map((_, optionIndex) => <option key={optionIndex} value={optionIndex}>{String.fromCharCode(65 + optionIndex)}</option>)}
-                </select>
+            {question.questionType === "match_columns" ? <div className="match-editor">
+              <div className="match-editor-heading">
+                <div><span className="match-editor-eyebrow">MATCHING QUESTION</span><h4>Build the two columns</h4><p>Enter each side separately, then choose the correct Column II match for every Column I item.</p></div>
+                <span className="match-editor-count">{question.options.length} pairs</span>
+              </div>
+              <div className="match-editor-columns">
+                <section className="match-editor-column" aria-labelledby={`column-one-${questionIndex}`}>
+                  <header className="match-editor-column-head"><span className="match-editor-letter">I</span><div><h5 id={`column-one-${questionIndex}`}>Column I</h5><small>Items to match</small></div></header>
+                  <div className="match-editor-list">
+                    {question.matchLeft.map((item, itemIndex) => <div className="match-editor-item" key={itemIndex}>
+                      <span className="match-editor-index">{String.fromCharCode(65 + itemIndex)}</span>
+                      <input className="input" aria-label={`Column I item ${itemIndex + 1}`} value={item} onChange={(e) => updateMatchLeft(questionIndex, itemIndex, e.target.value)} placeholder={`Enter item ${itemIndex + 1}`} maxLength={500} required />
+                      {question.options.length > 2 && <button className="match-editor-remove" type="button" onClick={() => removeOption(questionIndex, itemIndex)} aria-label={`Remove pair ${itemIndex + 1}`} title="Remove this pair"><Trash2 size={15}/></button>}
+                    </div>)}
+                  </div>
+                </section>
+                <div className="match-editor-connector" aria-hidden="true"><ArrowLeftRight size={19}/></div>
+                <section className="match-editor-column" aria-labelledby={`column-two-${questionIndex}`}>
+                  <header className="match-editor-column-head"><span className="match-editor-letter">II</span><div><h5 id={`column-two-${questionIndex}`}>Column II</h5><small>Available matches</small></div></header>
+                  <div className="match-editor-list">
+                    {question.options.map((option, optionIndex) => <div className="match-editor-item match-editor-choice" key={optionIndex}>
+                      <span className="match-editor-index">{String.fromCharCode(65 + optionIndex)}</span>
+                      <input className="input" id={`option-${questionIndex}-${optionIndex}`} aria-label={`Column II choice ${optionIndex + 1}`} value={option} onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)} placeholder={`Enter choice ${String.fromCharCode(65 + optionIndex)}`} maxLength={500} required />
+                    </div>)}
+                  </div>
+                </section>
+              </div>
+              <section className="match-editor-answer-key" aria-label="Correct matches answer key">
+                <header><div><h5>Correct matches</h5><small>Pair each Column I item with a different Column II choice.</small></div><span>ANSWER KEY</span></header>
+                <div className="match-editor-answer-list">
+                  {question.matchLeft.map((item, itemIndex) => <div className="match-editor-answer-row" key={itemIndex}>
+                    <span className="match-editor-pair-item"><b>{String.fromCharCode(65 + itemIndex)}</b><span>{item.trim() || `Column I item ${itemIndex + 1}`}</span></span>
+                    <ArrowLeftRight className="match-editor-answer-arrow" size={17} aria-hidden="true"/>
+                    <select className="input" aria-label={`Correct Column II match for item ${itemIndex + 1}`} value={question.correctMatches[itemIndex]} onChange={(e) => updateMatchTarget(questionIndex, itemIndex, Number(e.target.value))} required>
+                      <option value={-1} disabled>Select a match</option>{question.options.map((option, optionIndex) => {
+                        const usedByAnotherItem = question.correctMatches.some((match, index) => index !== itemIndex && match === optionIndex);
+                        return !usedByAnotherItem || question.correctMatches[itemIndex] === optionIndex ? <option key={optionIndex} value={optionIndex}>{String.fromCharCode(65 + optionIndex)}{option.trim() ? ` · ${option.slice(0, 28)}` : ""}</option> : null;
+                      })}
+                    </select>
+                  </div>)}
+                </div>
+              </section>
+              <div className="match-editor-footer"><span>Each Column I item must use a different Column II choice.</span>{question.options.length < 6 && <button className="btn small" type="button" onClick={() => addOption(questionIndex)}><Plus size={14}/> Add pair</button>}</div>
+            </div> : <>
+              <div className="answer-editor-heading"><h4>Answer choices</h4><p>{question.questionType === "single_correct" ? "Select the radio button beside the correct answer." : "Select every correct answer."}</p></div>
+              {question.options.map((option, optionIndex) => <div key={optionIndex}>
+                <label className="label" htmlFor={`option-${questionIndex}-${optionIndex}`}>Choice {String.fromCharCode(65 + optionIndex)}{question.questionType === "single_correct" && question.correctOption === optionIndex ? " · correct answer" : question.questionType === "multiple_correct" && question.correctOptions.includes(optionIndex) ? " · correct answer" : ""}</label>
+                <div className="row">{question.questionType === "single_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="radio" name={`correct-${questionIndex}`} checked={question.correctOption === optionIndex} onChange={() => updateQuestion(questionIndex, { correctOption: optionIndex })} />}{question.questionType === "multiple_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="checkbox" checked={question.correctOptions.includes(optionIndex)} onChange={(e) => updateQuestion(questionIndex, { correctOptions: e.target.checked ? [...question.correctOptions, optionIndex] : question.correctOptions.filter((item) => item !== optionIndex) })} />}<input className="input" id={`option-${questionIndex}-${optionIndex}`} value={option} onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)} maxLength={500} required />{question.options.length > 2 && <button className="btn small" type="button" onClick={() => removeOption(questionIndex, optionIndex)} aria-label={`Remove choice ${optionIndex + 1}`}><Trash2 size={14}/></button>}</div>
               </div>)}
-              <p className="muted" style={{ margin: 0 }}>Column II is entered below. Every left item must map to a different choice.</p>
-            </div>}
-            {question.options.map((option, optionIndex) => <div key={optionIndex}>
-              <label className="label" htmlFor={`option-${questionIndex}-${optionIndex}`}>{question.questionType === "match_columns" ? `Column II · ${String.fromCharCode(65 + optionIndex)}` : `Choice ${String.fromCharCode(65 + optionIndex)}`}{question.questionType === "single_correct" && question.correctOption === optionIndex ? " · correct answer" : question.questionType === "multiple_correct" && question.correctOptions.includes(optionIndex) ? " · correct answer" : ""}</label>
-              <div className="row">{question.questionType === "single_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="radio" name={`correct-${questionIndex}`} checked={question.correctOption === optionIndex} onChange={() => updateQuestion(questionIndex, { correctOption: optionIndex })} />}{question.questionType === "multiple_correct" && <input aria-label={`Mark choice ${String.fromCharCode(65 + optionIndex)} correct`} type="checkbox" checked={question.correctOptions.includes(optionIndex)} onChange={(e) => updateQuestion(questionIndex, { correctOptions: e.target.checked ? [...question.correctOptions, optionIndex] : question.correctOptions.filter((item) => item !== optionIndex) })} />}<input className="input" id={`option-${questionIndex}-${optionIndex}`} value={option} onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)} maxLength={500} required />{question.options.length > 2 && <button className="btn small" type="button" onClick={() => removeOption(questionIndex, optionIndex)} aria-label={`Remove choice ${optionIndex + 1}`}><Trash2 size={14}/></button>}</div>
-            </div>)}
-            {question.options.length < 6 && <button className="btn small" type="button" onClick={() => addOption(questionIndex)}><Plus size={14}/> Add {question.questionType === "match_columns" ? "row and Column II choice" : "choice"}</button>}
+              {question.options.length < 6 && <button className="btn small" type="button" onClick={() => addOption(questionIndex)}><Plus size={14}/> Add choice</button>}
+            </>}
             {questions.length > 1 && <button className="btn small" type="button" onClick={() => setQuestions((current) => current.filter((_, i) => i !== questionIndex))}><Trash2 size={14}/> Remove question</button>}
           </fieldset>)}
           {questions.length < 20 && <button className="btn" type="button" onClick={() => setQuestions((current) => [...current, newQuestion()])}><Plus size={15}/> Add question</button>}
