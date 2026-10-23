@@ -1,0 +1,21 @@
+import Link from "next/link";
+import { ArrowRight, BookOpen, BrainCircuit, CalendarCheck, Check, ChevronRight, Clock3, GraduationCap, Sparkles, Star, Target, Zap } from "lucide-react";
+
+function Preview() {
+  return <div className="preview"><div className="preview-inner"><div className="windowbar"><span className="dot"/><span className="dot"/><span className="dot"/><span style={{marginLeft:9}}>studastra / student dashboard</span></div><div className="dash"><aside className="dashside"><div className="sideitem active">✦ Overview</div><div className="sideitem">◷ Study planner</div><div className="sideitem">▤ My notes</div><div className="sideitem">✧ Study buddy</div><div className="sideitem">◇ Practice quiz</div></aside><div className="dashmain"><h3>Welcome back, stargazer ✨</h3><p>Your next big thing starts with today's small steps.</p><div className="stats"><div className="stat"><span>Study streak</span><b>🔥 7 days</b></div><div className="stat"><span>Focus time</span><b>2.5h</b></div><div className="stat"><span>Goals done</span><b>8/10</b></div></div><div className="minirow"><div className="mini"><b>Today's mission</b><p style={{margin:"7px 0",color:"#c2c5df"}}>Review biology notes</p><div className="bar"><i/></div></div><div className="mini"><b>Cosmic progress</b><p style={{margin:"7px 0",color:"#c2c5df"}}>You're building momentum!</p><span style={{color:"#9ee9cc"}}>✦ Level 4 · Rising star</span></div></div></div></div></div></div>;
+}
+const features = [
+  {icon:BrainCircuit,title:"AI Study Buddy",desc:"Get friendly explanations and work through confusing concepts, one step at a time."},
+  {icon:CalendarCheck,title:"Focus & planner",desc:"Turn your goals into manageable tasks and keep your next session in view."},
+  {icon:BookOpen,title:"Notes universe",desc:"Save and organize your study notes by subject in your personal workspace."},
+  {icon:GraduationCap,title:"Practice quizzes",desc:"Check your understanding with quick practice questions and feedback."},
+  {icon:Target,title:"Progress tracker",desc:"Celebrate completed tasks and see your study habits take shape."},
+  {icon:Sparkles,title:"Calm study space",desc:"A cosmic, distraction-light interface that makes starting feel easier."}
+];
+export default function Home() {
+  return <><header className="wrap nav"><Link className="brand" href="/"><span className="logo">✦</span> StudAstra</Link><nav className="navlinks"><a href="#features">Features</a><a href="#preview">Preview</a><Link href="/auth">Student login</Link><Link className="btn small" href="/admin/login">Admin login ↗</Link></nav></header>
+  <main><section className="hero wrap"><span className="pill"><Sparkles size={14}/> YOUR COSMIC STUDY COMPANION</span><h1>Make every study session <span className="gradient">stellar.</span></h1><p>Your personal space to focus, learn, and grow. Turn big goals into little wins with smarter study tools and a little cosmic motivation.</p><div className="actions"><Link className="btn primary" href="/auth">Start learning <ArrowRight size={17}/></Link><a className="btn" href="#features">Explore features</a></div><div id="preview"><Preview/></div></section>
+  <section id="features" className="wrap"><div className="section-head"><h2>Your universe of learning</h2><p>Everything you need to make progress, all in one place.</p></div><div className="features">{features.map(({icon:Icon,title,desc})=><article className="feature" key={title}><div className="emoji"><Icon size={23}/></div><h3>{title}</h3><p>{desc}</p></article>)}</div></section>
+  <section className="wrap"><div className="panel row between"><div><span className="pill"><Star size={13}/> ONE STEP AT A TIME</span><h2 style={{margin:"12px 0 4px"}}>Ready to find your focus?</h2><p className="muted" style={{margin:0}}>Create an account to save your notes and study goals.</p></div><Link className="btn primary" href="/auth">Create free account <ChevronRight size={17}/></Link></div></section></main>
+  <footer><div className="wrap row between"><span>✦ StudAstra · Learn at your own orbit.</span><span>Original design · Built for learning</span></div></footer></>;
+}
