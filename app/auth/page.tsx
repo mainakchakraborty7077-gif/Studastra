@@ -13,6 +13,42 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+
+  async function handleResendConfirmation() {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setMessage("Enter your email address above first.");
+      return;
+    }
+
+    setBusy(true);
+    setResendingConfirmation(true);
+    setMessage("");
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: normalizedEmail,
+      });
+
+      if (error) throw error;
+
+      setMessage(
+        "If this address has an unconfirmed account, a confirmation email has been sent. Check your inbox and spam folder."
+      );
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Could not resend the confirmation email. Please try again later."
+      );
+    } finally {
+      setBusy(false);
+      setResendingConfirmation(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -145,6 +181,19 @@ export default function AuthPage() {
                 Forgot password?
               </Link>
             </div>
+          )}
+
+          {!isSignUp && (
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={busy}
+              className="w-full text-sm underline disabled:opacity-50"
+            >
+              {resendingConfirmation
+                ? "Sending confirmation email..."
+                : "Resend confirmation email"}
+            </button>
           )}
 
           <button
