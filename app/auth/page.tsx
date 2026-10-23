@@ -1,13 +1,96 @@
- "use client";
+ 
+"use client";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-export default function AuthPage() {
- const [mode,setMode]=useState<"signin"|"signup">("signup");
- const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [name,setName]=useState("");
- const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false); const router=useRouter();
- async function submit(e:FormEvent){e.preventDefault();setBusy(true);setMessage("");try{const supabase=createClient();if(mode==="signup"){const {error}=await supabase.auth.signUp({email,password,options:{data:{display_name:name,role:"student"}}});if(error)throw error;setMessage("Account request sent. If email confirmation is enabled, check your inbox to confirm your account.");}else{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;router.push("/dashboard");router.refresh();}}catch(err){setMessage(err instanceof Error?err.message:"Something went wrong.");}finally{setBusy(false)}}
- return <main className="wrap" style={{paddingTop:38,paddingBottom:70}}><Link className="brand" href="/"><span className="logo">✦</span> StudAstra</Link><section><div className="panel auth"><span className="pill">✦ YOUR LEARNING JOURNEY</span><h1 style={{fontSize:34,marginBottom:4}}>{mode==="signup"?"Create your account":"Welcome back"}</h1><p className="muted">Your notes and study goals, all in one orbit.</p><div className="row" style={{margin:"20px 0"}}><button className={"btn "+(mode==="signup"?"primary":"")} onClick={()=>{setMode("signup");setMessage("")}}>Create account</button><button className={"btn "+(mode==="signin"?"primary":"")} onClick={()=>{setMode("signin");setMessage("")}}>Sign in</button></div><form onSubmit={submit} className="stack">{mode==="signup"&&<><label className="label" htmlFor="name">Your name</label><input className="input" id="name" autoComplete="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={80}/></>}<label className="label" htmlFor="email">Email</label><input className="input" id="email" type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} required/><label className="label" htmlFor="password">Password {mode==="signup"&&"(at least 8 characters)"}</label><input className="input" id="password" type="password" autoComplete={mode==="signup"?"new-password":"current-password"} minLength={8} value={password} onChange={e=>setPassword(e.target.value)} required/><button className="btn primary" disabled={busy}>{busy?"Please wait…":mode==="signup"?"Create account →":"Sign in →"}</button></form>{message&&<p className={message.includes("sent")?"success":"error"} role="status">{message}</p>}<p className="muted" style={{fontSize:12}}>By continuing, use an email address you control. Never share your password with anyone.</p></div></section></main>;
+
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        }
+      );
+
+      if (error) throw error;
+
+      setMessage(
+        "If an account exists for that email, a password-reset link will be sent. Please check your inbox."
+      );
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main
+      className="wrap"
+      style={{ paddingTop: 38, paddingBottom: 70 }}
+    >
+      <Link className="brand" href="/">
+        <span className="logo">✦</span> StudAstra
+      </Link>
+
+      <section>
+        <div className="panel auth">
+          <span className="pill">✦ ACCOUNT RECOVERY</span>
+          <h1 style={{ fontSize: 34, marginBottom: 4 }}>
+            Forgot your password?
+          </h1>
+          <p className="muted">
+            Enter the email address you used for StudAstra, and we’ll send
+            you a password-reset link.
+          </p>
+
+          <form onSubmit={submit} className="stack">
+            <label className="label" htmlFor="email">
+              Email
+            </label>
+            <input
+              className="input"
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <button className="btn primary" disabled={busy}>
+              {busy ? "Sending…" : "Send reset link →"}
+            </button>
+          </form>
+
+          {message && (
+            <p className="muted" role="status">
+              {message}
+            </p>
+          )}
+
+          <p className="muted" style={{ fontSize: 13 }}>
+            Remember your password? <Link href="/auth">Back to sign in</Link>
+          </p>
+        </div>
+      </section>
+    </main>
+  );
 }
-import { createClient } from "@/lib/supabase/client";
