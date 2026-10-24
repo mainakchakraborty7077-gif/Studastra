@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SaStyles } from "@/components/CosmicBackdrop";
 
 type ProfileData = {
   email: string;
@@ -27,7 +28,7 @@ function formatDate(value: string | null) {
 }
 
 export default function ProfileMenu({
-  className = "fixed right-4 top-4 z-50",
+  className = "sa-fixed",
 }: {
   className?: string;
 }) {
@@ -116,7 +117,8 @@ export default function ProfileMenu({
   const incomplete = details.some((d) => !d.value);
 
   return (
-    <div ref={wrapperRef} className={className}>
+    <div ref={wrapperRef} className={`sa-menu ${className}`}>
+      <SaStyles />
       <button
         type="button"
         onClick={() => {
@@ -126,59 +128,34 @@ export default function ProfileMenu({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label="Open your profile"
-        className="flex items-center gap-2 rounded-full border border-white/25 bg-[#141845] py-1 pl-1 pr-3 text-sm text-white shadow-lg"
+        className="sa-pill"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2c46d] font-semibold text-[#2a1d03]">
-          {initial}
-        </span>
-        <span className="max-w-[8rem] truncate">{displayName.split(" ")[0]}</span>
+        <span className="sa-dot">{initial}</span>
+        <span>{displayName.split(" ")[0]}</span>
       </button>
 
       {open && (
-        <div
-          role="dialog"
-          aria-label="Student profile"
-          className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/20 bg-[#141845] p-5 text-white shadow-2xl"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f2c46d] text-lg font-semibold text-[#2a1d03]">
-              {initial}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-semibold">{displayName}</p>
-              <p className="text-xs opacity-70">Student profile</p>
-            </div>
-          </div>
-
-          <dl className="mt-4 space-y-2 text-sm">
+        <div role="dialog" aria-label="Student profile" className="sa-pop">
+          <p style={{ margin: 0, fontWeight: 600 }}>{displayName}</p>
+          <p className="sa-small" style={{ margin: "2px 0 12px" }}>Student profile</p>
+          <dl style={{ margin: 0 }}>
             {details.map((d) => (
-              <div key={d.label} className="flex justify-between gap-4">
-                <dt className="opacity-70">{d.label}</dt>
-                <dd className="truncate text-right">
-                  {d.value || <span className="opacity-50">Not added</span>}
-                </dd>
+              <div key={d.label} className="sa-item">
+                <dt>{d.label}</dt>
+                <dd>{d.value || <span className="sa-dim">Not added</span>}</dd>
               </div>
             ))}
           </dl>
-
           {incomplete && (
-            <p className="mt-4 text-xs opacity-80">
+            <p className="sa-small" style={{ marginTop: 12 }}>
               Some details are missing. Add them to complete your profile.
             </p>
           )}
-
-          <div className="mt-4 flex items-center justify-between">
-            <a
-              href="/profile"
-              className="rounded-lg bg-[#f2c46d] px-3 py-2 text-sm font-semibold text-[#2a1d03]"
-            >
+          <div className="sa-row" style={{ marginTop: 16 }}>
+            <a href="/profile" className="sa-btn" style={{ width: "auto", padding: "8px 14px", fontSize: 14 }}>
               Edit profile
             </a>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="text-sm underline"
-            >
+            <button type="button" onClick={handleSignOut} className="sa-link">
               Sign out
             </button>
           </div>
