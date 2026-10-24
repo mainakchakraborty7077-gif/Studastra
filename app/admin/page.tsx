@@ -7,7 +7,7 @@ type Item = { id: string; title: string; kind: string; created_at: string; user_
 
 // The six admin options. An empty href means the section is not built yet.
 const OPTIONS = [
-  { icon: "📚", name: "Subjects", text: "Manage subjects and their chapters.", href: "" },
+  { icon: "📚", name: "Subjects", text: "Review the Class 11 and 12 chapter lists.", href: "/admin/subjects" },
   { icon: "📝", name: "DPP", text: "Publish daily practice problem sets.", href: "" },
   { icon: "🗂️", name: "Question Bank", text: "Add, review and remove questions by subject and chapter.", href: "/admin/questions" },
   { icon: "✨", name: "AI Tutor", text: "Set up and control the AI tutor.", href: "" },
