@@ -1,6 +1,7 @@
 export type ClassLevel = "11" | "12";
 export type Subject = "Physics" | "Chemistry" | "Mathematics" | "Biology";
 
+/** NCERT-aligned PCMB chapter titles, organized by class. */
 export const SYLLABUS_BY_CLASS = {
   "11": {
     Physics: [
@@ -68,6 +69,7 @@ export const SYLLABUS_BY_CLASS = {
       "Chemical Coordination and Integration",
     ],
   },
+
   "12": {
     Physics: [
       "Electric Charges and Fields",
@@ -128,15 +130,12 @@ export const SYLLABUS_BY_CLASS = {
       "Biodiversity and Conservation",
     ],
   },
-} as const satisfies Record<
-  ClassLevel,
-  Record<Subject, readonly string[]>
->;
+} as const satisfies Record<ClassLevel, Record<Subject, readonly string[]>>;
 
 /**
- * Combined Class 11 + Class 12 chapter lists.
- * Kept for compatibility with code that uses SYLLABUS[subject].
- * Duplicate chapter titles, such as "Relations and Functions", appear once.
+ * Combined Class 11 and Class 12 chapter lists.
+ * Existing app pages can continue using SYLLABUS[subject].
+ * Duplicate titles, such as "Relations and Functions", appear once.
  */
 export const SYLLABUS: Record<Subject, string[]> = {
   Physics: [
