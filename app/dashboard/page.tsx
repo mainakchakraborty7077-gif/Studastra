@@ -2,27 +2,24 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, Sparkles, StickyNote, Target, Trash2, TrendingUp } from "lucide-react";
+import { ArrowRight, BookOpen, ClipboardCheck, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, Sparkles, StickyNote, Target, Trash2, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 
 type StudyItem = { id: string; title: string; body: string; kind: "goal" | "note"; created_at: string };
-type Lang = "en" | "bn";
 
-const T = {
-  en: { morning: "Good Morning", afternoon: "Good Afternoon", evening: "Good Evening", student: "Student", search: "Search everything…", today: "Today's Goal", entries: "entries", streak: "Study Streak", days: "Days", week: "This Week's Progress", cont: "Continue Learning", open: "Open", first: "Add your first goal or note below.", subjects: "Subjects", ach: "Achievements", space: "Your study space", add: "Add a goal or note", saved: "Your saved entries", empty: "Nothing here yet. Add your first goal or note.", soon: "Soon", goal: "Study goal", note: "Study note", save: "Save to my account", saving: "Saving…", type: "Entry type", title: "Title", details: "Details", mention: "mentions" },
-  bn: { morning: "শুভ সকাল", afternoon: "শুভ অপরাহ্ন", evening: "শুভ সন্ধ্যা", student: "শিক্ষার্থী", search: "সবকিছু খুঁজুন…", today: "আজকের লক্ষ্য", entries: "এন্ট্রি", streak: "স্টাডি স্ট্রিক", days: "দিন", week: "এই সপ্তাহের অগ্রগতি", cont: "শেখা চালিয়ে যাও", open: "খুলুন", first: "নিচে তোমার প্রথম লক্ষ্য বা নোট যোগ করো।", subjects: "বিষয়সমূহ", ach: "অর্জন", space: "তোমার স্টাডি স্পেস", add: "লক্ষ্য বা নোট যোগ করো", saved: "তোমার সংরক্ষিত এন্ট্রি", empty: "এখনও কিছু নেই। প্রথম লক্ষ্য বা নোট যোগ করো।", soon: "শীঘ্রই", goal: "পড়ার লক্ষ্য", note: "পড়ার নোট", save: "আমার অ্যাকাউন্টে সংরক্ষণ", saving: "সংরক্ষণ হচ্ছে…", type: "ধরন", title: "শিরোনাম", details: "বিবরণ", mention: "উল্লেখ" },
-};
+const t = { morning: "Good Morning", afternoon: "Good Afternoon", evening: "Good Evening", student: "Student", search: "Search everything…", today: "Today's Goal", entries: "entries", streak: "Study Streak", days: "Days", week: "This Week's Progress", cont: "Continue Learning", open: "Open", first: "Add your first goal or note below.", subjects: "Subjects", ach: "Achievements", space: "Your study space", add: "Add a goal or note", saved: "Your saved entries", empty: "Nothing here yet. Add your first goal or note.", soon: "Soon", goal: "Study goal", note: "Study note", save: "Save to my account", saving: "Saving…", type: "Entry type", title: "Title", details: "Details", mention: "mentions" };
 const NAV = [
-  { en: "Dashboard", bn: "ড্যাশবোর্ড", icon: LayoutDashboard, href: "/dashboard" },
-  { en: "Subjects", bn: "বিষয়", icon: BookOpen },
-  { en: "DPP", bn: "ডিপিপি", icon: ListChecks },
-  { en: "Question Bank", bn: "প্রশ্নব্যাংক", icon: Library },
-  { en: "Notes", bn: "নোটস", icon: StickyNote, href: "#space" },
-  { en: "AI Tutor", bn: "এআই টিউটর", icon: Sparkles },
-  { en: "Quiz", bn: "কুইজ", icon: Target, href: "/dashboard/tests" },
-  { en: "Progress", bn: "অগ্রগতি", icon: TrendingUp },
-  { en: "Settings", bn: "সেটিংস", icon: Settings, href: "/profile" },
+  { en: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { en: "Subjects", icon: BookOpen },
+  { en: "DPP", icon: ListChecks },
+  { en: "Question Bank", icon: Library },
+  { en: "Notes", icon: StickyNote, href: "#space" },
+  { en: "AI Tutor", icon: Sparkles },
+  { en: "Quiz", icon: Target },
+  { en: "Tests", icon: ClipboardCheck, href: "/dashboard/tests" },
+  { en: "Progress", icon: TrendingUp },
+  { en: "Settings", icon: Settings, href: "/profile" },
 ];
 const SUBJECTS = [
   { name: "Physics", icon: "⚛️", key: "physics" },
@@ -40,10 +37,8 @@ export default function Dashboard() {
   const [message, setMessage] = useState("Loading your workspace…");
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("");
-  const [lang, setLang] = useState<Lang>("en");
   const [q, setQ] = useState("");
   const router = useRouter();
-  const t = T[lang];
 
   async function load() {
     try {
@@ -110,7 +105,7 @@ export default function Dashboard() {
         <Link href="/" className="ds-logo"><span className="ds-mark">✦</span><b>StudAstra</b></Link>
         <nav className="ds-nav">
           {NAV.map(n => {
-            const Icon = n.icon; const label = n[lang];
+            const Icon = n.icon; const label = n.en;
             return n.href
               ? <Link key={n.en} href={n.href} className={`ds-link ${n.en === "Dashboard" ? "on" : ""}`}><Icon size={17} />{label}</Link>
               : <div key={n.en} className="ds-link off" aria-disabled="true"><Icon size={17} />{label}<em>{t.soon}</em></div>;
@@ -122,10 +117,6 @@ export default function Dashboard() {
       <div className="ds-main">
         <header className="ds-top">
           <label className="ds-search"><Search size={16} /><input value={q} onChange={e => setQ(e.target.value)} placeholder={t.search} aria-label={t.search} /></label>
-          <div className="ds-lang" role="group" aria-label="Language">
-            <button className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>EN</button>
-            <button className={lang === "bn" ? "on" : ""} onClick={() => setLang("bn")}>বাংলা</button>
-          </div>
           <ProfileMenu className="ds-pm" />
         </header>
 
@@ -204,10 +195,7 @@ const css = `
 .ds-top{display:flex;align-items:center;gap:14px;padding:12px 28px;border-bottom:1px solid rgba(255,255,255,.06)}
 .ds-search{flex:1;max-width:420px;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;background:#0f1922;border:1px solid rgba(255,255,255,.1);color:rgba(232,241,245,.6)}
 .ds-search input{flex:1;background:none;border:0;outline:0;color:#e8f1f5;font-size:14px;font-family:inherit;min-width:0}
-.ds-lang{margin-left:auto;display:flex;padding:4px;border-radius:999px;background:#0f1922;border:1px solid rgba(255,255,255,.1)}
-.ds-lang button{border:0;background:none;color:rgba(232,241,245,.7);padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer;font-family:inherit}
-.ds-lang button.on{background:#22d3ee;color:#04222a;font-weight:600}
-.ds-pm{position:relative}
+.ds-pm{position:relative;margin-left:auto}
 .ds-page{max-width:1120px;margin:0 auto;padding:26px 28px 70px}
 .ds-hello{font-size:34px;margin:0 0 20px;font-weight:700}
 .ds-msg{padding:10px 14px;border-radius:12px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);font-size:14px}
