@@ -5,13 +5,14 @@ import AdminShell from "@/components/AdminShell";
 import { createClient } from "@/lib/supabase/client";
 import { SYLLABUS } from "@/lib/syllabus";
 
+type Subject = keyof typeof SYLLABUS;
 type Question = { id: string; subject: string; chapter: string; difficulty: string; question: string; options: string[]; correct: number; explanation: string | null };
-const SUBJECTS = Object.keys(SYLLABUS);
+const SUBJECTS = Object.keys(SYLLABUS) as Subject[];
 const LETTERS = ["A", "B", "C", "D"];
 
 export default function QuestionBankPage() {
   const [items, setItems] = useState<Question[]>([]);
-  const [subject, setSubject] = useState(SUBJECTS[0]);
+  const [subject, setSubject] = useState<Subject>(SUBJECTS[0]);
   const [chapter, setChapter] = useState(SYLLABUS[SUBJECTS[0]][0]);
   const [difficulty, setDifficulty] = useState("medium");
   const [question, setQuestion] = useState("");
@@ -32,7 +33,7 @@ export default function QuestionBankPage() {
     void load();
   }, []);
 
-  function pickSubject(sub: string) { setSubject(sub); setChapter(SYLLABUS[sub][0]); }
+  function pickSubject(sub: Subject) { setSubject(sub); setChapter(SYLLABUS[sub][0]); }
 
   async function add(e: FormEvent) {
     e.preventDefault(); setBusy(true); setMessage("");
@@ -60,7 +61,7 @@ export default function QuestionBankPage() {
   return (
     <AdminShell title="Question bank" subtitle="Add multiple-choice questions. Quizzes and DPP sets will draw from these.">
       <form onSubmit={add} className="ad-card ad-form">
-        <div><label htmlFor="sub">Subject</label><select id="sub" value={subject} onChange={(e) => pickSubject(e.target.value)}>{SUBJECTS.map((x) => <option key={x}>{x}</option>)}</select></div>
+        <div><label htmlFor="sub">Subject</label><select id="sub" value={subject} onChange={(e) => pickSubject(e.target.value as Subject)}>{SUBJECTS.map((x) => <option key={x}>{x}</option>)}</select></div>
         <div><label htmlFor="ch">Chapter</label><select id="ch" value={chapter} onChange={(e) => setChapter(e.target.value)}>{SYLLABUS[subject].map((x) => <option key={x}>{x}</option>)}</select></div>
         <div><label htmlFor="df">Difficulty</label><select id="df" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
         <div><label htmlFor="co">Correct option</label><select id="co" value={correct} onChange={(e) => setCorrect(Number(e.target.value))}>{LETTERS.map((l, n) => <option key={l} value={n}>{l}</option>)}</select></div>
