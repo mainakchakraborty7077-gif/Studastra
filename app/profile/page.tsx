@@ -4,99 +4,100 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import CosmicBackdrop from "@/components/CosmicBackdrop";
 
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Not sure"];
-const EXAMS = [
-  "JEE Main",
-  "JEE Advanced",
-  "WBJEE",
-  "NEET",
-  "CUET",
-  "Board exams",
-  "GATE",
-  "CAT",
-  "UPSC",
-];
+const EXAMS = ["JEE Main", "JEE Advanced", "WBJEE", "NEET", "CUET", "Board exams", "GATE", "CAT", "UPSC"];
 
-const inputClass = "w-full rounded-lg border bg-transparent px-3 py-3";
-const labelClass = "mb-1 block text-sm";
+type Form = {
+  fullName: string;
+  grade: string;
+  targetExam: string;
+  gender: string;
+  bloodGroup: string;
+  dateOfBirth: string;
+  phone: string;
+};
+
+const empty: Form = {
+  fullName: "", grade: "", targetExam: "", gender: "",
+  bloodGroup: "", dateOfBirth: "", phone: "",
+};
 
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [userId, setUserId] = useState("");
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [grade, setGrade] = useState("");
-  const [targetExam, setTargetExam] = useState("");
-  const [gender, setGender] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [phone, setPhone] = useState("");
+  const [f, setF] = useState<Form>(empty);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  const set = (key: keyof Form) => (value: string) =>
+    setF((prev) => ({ ...prev, [key]: value }));
+
   useEffect(() => {
-    async function loadProfile() {
+    async function load() {
       const supabase = createClient();
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
-
       if (!user) {
         router.replace("/auth");
         return;
       }
-
       setUserId(user.id);
       setEmail(user.email ?? "");
 
-      const { data: profile } = await supabase
+      const { data: p } = await supabase
         .from("profiles")
         .select("full_name, grade, target_exam, gender, blood_group, date_of_birth, phone")
         .eq("id", user.id)
         .maybeSingle();
 
-      setFullName(
-        profile?.full_name ?? (user.user_metadata?.display_name as string) ?? ""
-      );
-      setGrade(profile?.grade ?? "");
-      setTargetExam(profile?.target_exam ?? "");
-      setGender(profile?.gender ?? "");
-      setBloodGroup(profile?.blood_group ?? "");
-      setDateOfBirth(profile?.date_of_birth ?? "");
-      setPhone(profile?.phone ?? "");
+      const loaded: Form = {
+        fullName: p?.full_name ?? (user.user_metadata?.display_name as string) ?? "",
+        grade: p?.grade ?? "",
+        targetExam: p?.target_exam ?? "",
+        gender: p?.gender ?? "",
+        bloodGroup: p?.blood_group ?? "",
+        dateOfBirth: p?.date_of_birth ?? "",
+        phone: p?.phone ?? "",
+      };
+      setF(loaded);
+      // New students land straight in edit mode
+      setEditing(!loaded.grade && !loaded.targetExam && !loaded.phone);
       setLoading(false);
     }
-
-    loadProfile();
+    load();
   }, [router]);
 
   async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     setMessage("");
-
     try {
       const supabase = createClient();
       const { error } = await supabase.from("profiles").upsert({
         id: userId,
         email,
-        full_name: fullName.trim(),
-        grade: grade.trim() || null,
-        target_exam: targetExam.trim() || null,
-        gender: gender || null,
-        blood_group: bloodGroup || null,
-        date_of_birth: dateOfBirth || null,
-        phone: phone.trim() || null,
+        full_name: f.fullName.trim(),
+        grade: f.grade.trim() || null,
+        target_exam: f.targetExam.trim() || null,
+        gender: f.gender || null,
+        blood_group: f.bloodGroup || null,
+        date_of_birth: f.dateOfBirth || null,
+        phone: f.phone.trim() || null,
       });
-
       if (error) throw error;
-      setMessage("Profile saved.");
+      setEditing(false);
+      setMessage("Your profile is saved.");
     } catch (err) {
+      const reason = (err as { message?: string })?.message;
       setMessage(
-        err instanceof Error
-          ? `Could not save your profile: ${err.message}`
+        reason
+          ? `Could not save your profile: ${reason}`
           : "Could not save your profile. Please try again."
       );
     } finally {
@@ -113,164 +114,142 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-sm opacity-70">Loading your profile...</p>
-      </main>
+      <CosmicBackdrop>
+        <p className="sa-sub">Loading your profile...</p>
+      </CosmicBackdrop>
     );
   }
 
+  const name = f.fullName.trim() || email;
+  const dob = f.dateOfBirth
+    ? new Date(`${f.dateOfBirth}T00:00:00`).toLocaleDateString("en-IN", {
+        day: "numeric", month: "long", year: "numeric",
+      })
+    : "";
+  const rows = [
+    { k: "Email address", v: email },
+    { k: "Grade", v: f.grade },
+    { k: "Targeted exam", v: f.targetExam },
+    { k: "Gender", v: f.gender },
+    { k: "Blood group", v: f.bloodGroup },
+    { k: "Date of birth", v: dob },
+    { k: "Phone number", v: f.phone },
+  ];
+  const filled = rows.filter((r) => r.v).length;
+  const percent = Math.round((filled / rows.length) * 100);
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-5 py-12">
-      <div className="w-full max-w-md rounded-2xl border p-8 shadow-sm">
-        <Link href="/dashboard" className="text-sm opacity-70">
+    <CosmicBackdrop>
+      <div className="sa-card wide">
+        <Link href="/dashboard" className="sa-back">
           ← Back to dashboard
         </Link>
 
-        <div className="mt-8 mb-7">
-          <p className="text-sm font-medium">✦ StudAstra</p>
-          <h1 className="mt-3 text-3xl font-bold">Your student profile</h1>
-          <p className="mt-2 text-sm opacity-70">
-            Keep your details up to date.
+        <div className="sa-center">
+          <span className="sa-avatar">
+            {name.charAt(0).toUpperCase()}
+          </span>
+          <h1 className="sa-title">{name}</h1>
+          <p className="sa-sub">
+            {editing ? "Update your details" : "Student profile"}
           </p>
+          <div className="sa-bar">
+            <div style={{ width: `${percent}%` }} />
+          </div>
+          <p className="sa-small">{percent}% of your profile is complete</p>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-4">
+        {editing ? (
+          <form onSubmit={handleSave} className="sa-form">
+            <div>
+              <label htmlFor="email" className="sa-label">Email address</label>
+              <input id="email" type="email" value={email} readOnly className="sa-input" />
+            </div>
+            <div>
+              <label htmlFor="fullName" className="sa-label">Student name</label>
+              <input id="fullName" type="text" autoComplete="name" required value={f.fullName}
+                onChange={(e) => set("fullName")(e.target.value)} className="sa-input" placeholder="Enter your name" />
+            </div>
+            <div className="sa-grid">
+              <div>
+                <label htmlFor="grade" className="sa-label">Grade or class</label>
+                <input id="grade" type="text" value={f.grade}
+                  onChange={(e) => set("grade")(e.target.value)} className="sa-input" placeholder="For example, Class 11" />
+              </div>
+              <div>
+                <label htmlFor="exam" className="sa-label">Targeted exam</label>
+                <input id="exam" type="text" list="exam-options" value={f.targetExam}
+                  onChange={(e) => set("targetExam")(e.target.value)} className="sa-input" placeholder="Pick or type" />
+                <datalist id="exam-options">
+                  {EXAMS.map((x) => <option key={x} value={x} />)}
+                </datalist>
+              </div>
+              <div>
+                <label htmlFor="gender" className="sa-label">Gender</label>
+                <select id="gender" value={f.gender} onChange={(e) => set("gender")(e.target.value)} className="sa-input">
+                  <option value="">Select</option>
+                  {GENDERS.map((x) => <option key={x} value={x}>{x}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="blood" className="sa-label">Blood group</label>
+                <select id="blood" value={f.bloodGroup} onChange={(e) => set("bloodGroup")(e.target.value)} className="sa-input">
+                  <option value="">Select</option>
+                  {BLOOD_GROUPS.map((x) => <option key={x} value={x}>{x}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="dob" className="sa-label">Date of birth</label>
+                <input id="dob" type="date" max={new Date().toISOString().split("T")[0]} value={f.dateOfBirth}
+                  onChange={(e) => set("dateOfBirth")(e.target.value)} className="sa-input" />
+              </div>
+              <div>
+                <label htmlFor="phone" className="sa-label">Phone number</label>
+                <input id="phone" type="tel" autoComplete="tel" pattern="[0-9+\s\-]{7,15}"
+                  title="Enter 7 to 15 digits. You can use + and spaces." value={f.phone}
+                  onChange={(e) => set("phone")(e.target.value)} className="sa-input" placeholder="+91 98765 43210" />
+              </div>
+            </div>
+            <div className="sa-actions">
+              <button type="submit" disabled={saving}
+                className="sa-btn">
+                {saving ? "Saving..." : "Save profile"}
+              </button>
+              <button type="button" onClick={() => { setEditing(false); setMessage(""); }}
+                className="sa-btn ghost">
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
           <div>
-            <label htmlFor="email" className={labelClass}>Email address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              readOnly
-              className={`${inputClass} opacity-60`}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="fullName" className={labelClass}>Student name</label>
-            <input
-              id="fullName"
-              type="text"
-              autoComplete="name"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className={inputClass}
-              placeholder="Enter your name"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="grade" className={labelClass}>Grade or class</label>
-            <input
-              id="grade"
-              type="text"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              className={inputClass}
-              placeholder="For example, Class 11 or Dropper"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="targetExam" className={labelClass}>Targeted exam</label>
-            <input
-              id="targetExam"
-              type="text"
-              list="exam-options"
-              value={targetExam}
-              onChange={(e) => setTargetExam(e.target.value)}
-              className={inputClass}
-              placeholder="Choose from the list or type your own"
-            />
-            <datalist id="exam-options">
-              {EXAMS.map((exam) => (
-                <option key={exam} value={exam} />
+            <dl className="sa-list">
+              {rows.map((r) => (
+                <div key={r.k} className="sa-item">
+                  <dt>{r.k}</dt>
+                  <dd>{r.v || <span className="sa-dim">Not added yet</span>}</dd>
+                </div>
               ))}
-            </datalist>
+            </dl>
+            <button type="button" onClick={() => { setEditing(true); setMessage(""); }}
+              className="sa-btn" style={{ marginTop: 20 }}>
+              Edit details
+            </button>
           </div>
+        )}
 
-          <div>
-            <label htmlFor="gender" className={labelClass}>Gender</label>
-            <select
-              id="gender"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Select</option>
-              {GENDERS.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
+        {message && (
+          <p role="status" aria-live="polite"
+            className="sa-msg" style={{ marginTop: 20 }}>
+            {message}
+          </p>
+        )}
 
-          <div>
-            <label htmlFor="bloodGroup" className={labelClass}>Blood group</label>
-            <select
-              id="bloodGroup"
-              value={bloodGroup}
-              onChange={(e) => setBloodGroup(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Select</option>
-              {BLOOD_GROUPS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="dob" className={labelClass}>Date of birth</label>
-            <input
-              id="dob"
-              type="date"
-              max={new Date().toISOString().split("T")[0]}
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="phone" className={labelClass}>Phone number</label>
-            <input
-              id="phone"
-              type="tel"
-              autoComplete="tel"
-              pattern="[0-9+\s\-]{7,15}"
-              title="Enter 7 to 15 digits. You can use + and spaces."
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={inputClass}
-              placeholder="+91 98765 43210"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full rounded-lg px-4 py-3 font-semibold disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save profile"}
-          </button>
-
-          {message && (
-            <p role="status" aria-live="polite" className="text-sm">
-              {message}
-            </p>
-          )}
-        </form>
-
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="mt-6 w-full text-sm underline"
-        >
+        <button type="button" onClick={handleSignOut} className="sa-link sa-foot" style={{ display: "block", width: "100%" }}>
           Sign out
         </button>
       </div>
-    </main>
+    </CosmicBackdrop>
   );
 }
 
