@@ -7,11 +7,11 @@ type Item = { id: string; title: string; kind: string; created_at: string; user_
 
 // The six admin options. An empty href means the section is not built yet.
 const OPTIONS = [
-  { icon: "📚", name: "Subjects", text: "Manage subjects and their chapters.", href: "" },
-  { icon: "📝", name: "DPP", text: "Publish daily practice problem sets.", href: "" },
+  { icon: "📚", name: "Subjects", text: "Review the subject and chapter outline.", href: "/admin/subjects" },
+  { icon: "📝", name: "DPP", text: "Prepare daily practice using the question bank and test builder.", href: "/admin/dpp" },
   { icon: "🗂️", name: "Question Bank", text: "Add, review and remove questions by subject and chapter.", href: "/admin/questions" },
-  { icon: "✨", name: "AI Tutor", text: "Set up and control the AI tutor.", href: "" },
-  { icon: "🎯", name: "Quiz", text: "Build quizzes from the question bank.", href: "" },
+  { icon: "✨", name: "AI Tutor", text: "Check the tutor integration and setup requirements.", href: "/admin/ai-tutor" },
+  { icon: "🎯", name: "Quiz", text: "Build and publish student practice tests.", href: "/admin/tests" },
   { icon: "📈", name: "Progress", text: "See how every student is progressing.", href: "/admin/progress" },
 ];
 
@@ -44,4 +44,6 @@ export default function AdminPage() {
     </div>
     <div className="panel row between"><div><h3>Create practice tests</h3><p className="muted">Write multiple-choice questions and publish them for students.</p></div><Link className="btn primary" href="/admin/tests">Open test builder →</Link></div><div className="panel"><h3>Recent study entries</h3>{items.length === 0 ? <div className="empty">No study entries yet.</div> : items.map((i) => <article className="resource" key={i.id}><b>{i.title}</b><p>{i.kind} • {new Date(i.created_at).toLocaleString()} • student {i.user_id.slice(0, 8)}…</p></article>)}</div><div className="notice">Student entries remain private to their owners. Admin access is checked against your database role.</div></>}</section></main>;
 }
+
+
 
