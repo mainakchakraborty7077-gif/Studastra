@@ -26,6 +26,12 @@ This is a deployable starting point for a cosmic-style study app. It uses the ex
    ```
 5. In Supabase Authentication settings, configure the allowed redirect URLs for local and deployed URLs. For local development, include `http://localhost:3000/**`; after deploying, add your actual Vercel URL.
 
+## Learning videos and notes
+
+To enable the student video and notes libraries, run `supabase/learning_content.sql` once in the Supabase SQL Editor after the main schema. This creates the RLS-protected content tables and a private `learning-content` storage bucket. Admins can add YouTube links or MP4 videos and create text notes with optional JPEG, MP4, or PDF attachments. Students see only published items.
+
+The storage bucket accepts files up to 200 MB, subject to the upload limit configured for your Supabase project.
+
 ## 2. Run locally
 Install Node.js (current LTS), then in this folder:
 ```bash
