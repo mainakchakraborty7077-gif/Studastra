@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, ClipboardCheck, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, TrendingUp } from "lucide-react";
+import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, Video, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 
@@ -12,6 +12,8 @@ const t = { morning: "Good Morning", afternoon: "Good Afternoon", evening: "Good
 const NAV = [
   { en: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { en: "Syllabus", icon: BookOpen, href: "/dashboard/syllabus" },
+  { en: "Videos", icon: Video, href: "/dashboard/videos" },
+  { en: "Class Notes", icon: FileText, href: "/dashboard/notes" },
   { en: "DPP", icon: ListChecks },
   { en: "Question Bank", icon: Library },
   { en: "Notes", icon: StickyNote, href: "#space" },
@@ -127,6 +129,8 @@ export default function Dashboard() {
           <section className="ds-shortcuts" aria-label="Quick links">
             <Link href="/dashboard/syllabus" className="ds-card ds-shortcut"><BookOpen size={20} /><span><b>Syllabus</b><small>Class 11 and 12 PCMB chapters</small></span><ArrowRight size={17} /></Link>
             <Link href="/admin/login" className="ds-card ds-shortcut"><ShieldCheck size={20} /><span><b>Admin login</b><small>Administrator sign in</small></span><ArrowRight size={17} /></Link>
+            <Link href="/dashboard/videos" className="ds-card ds-shortcut"><Video size={20} /><span><b>Video library</b><small>Educational videos</small></span><ArrowRight size={17} /></Link>
+            <Link href="/dashboard/notes" className="ds-card ds-shortcut"><FileText size={20} /><span><b>Class notes</b><small>Notes and attachments</small></span><ArrowRight size={17} /></Link>
           </section>
           {message && <p className="ds-msg" role="status">{message}</p>}
 
