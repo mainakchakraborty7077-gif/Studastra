@@ -18,7 +18,18 @@ const SUBJECTS: ContentSubject[] = [
   "Biology",
 ];
 const CLASSES: ContentClass[] = ["11", "12"];
-const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/mpeg", "video/ogg", "video/3gpp"];
+const VIDEO_MIME_BY_EXTENSION: Record<string, string> = {
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  avi: "video/x-msvideo",
+  mpeg: "video/mpeg",
+  mpg: "video/mpeg",
+  ogg: "video/ogg",
+  ogv: "video/ogg",
+  "3gp": "video/3gpp",
+};
+const VIDEO_ACCEPT = ".mp4,.webm,.mov,.avi,.mpeg,.mpg,.ogg,.ogv,.3gp,video/*";
 const VIDEO_SELECT =
   "id,title,description,subject,class_level,youtube_url,file_path,published,created_at";
 
@@ -75,20 +86,26 @@ export default function AdminVideosPage() {
       }
 
       if (sourceType === "file") {
-        if (!file || !VIDEO_TYPES.includes(file.type)) {
-          throw new Error("Choose a supported video file such as MP4, WebM, MOV, AVI, MPEG, or OGG.");
+        const extension = file?.name
+          .split(".")
+          .pop()
+          ?.toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+        const contentType = extension ? VIDEO_MIME_BY_EXTENSION[extension] : null;
+        if (!file || !contentType) {
+          throw new Error(
+            "Choose a supported video file: MP4, WebM, MOV, AVI, MPEG, OGG, or 3GP.",
+          );
         }
         if (file.size > 200 * 1024 * 1024) {
           throw new Error("The video must be 200 MB or smaller.");
         }
 
-        const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (!extension) throw new Error("The video file needs a valid extension.");
         uploadedPath = "videos/" + crypto.randomUUID() + "." + extension;
         const { error: uploadError } = await supabase.storage
           .from(LEARNING_CONTENT_BUCKET)
           .upload(uploadedPath, file, {
-            contentType: file.type,
+            contentType,
             upsert: false,
           });
         if (uploadError) throw uploadError;
@@ -116,6 +133,10 @@ export default function AdminVideosPage() {
       setDescription("");
       setYoutubeUrl("");
       setFile(null);
+      const fileInput = document.getElementById(
+        "video-file",
+      ) as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
       setMessage("Video added to the library.");
     } catch (error) {
       if (uploadedPath) {
@@ -124,7 +145,9 @@ export default function AdminVideosPage() {
           .remove([uploadedPath]);
       }
       setMessage(
-        error instanceof Error ? error.message : "Could not add this video.",
+        error instanceof Error
+          ? error.message
+          : "Could not add this video. Check the Supabase learning library setup.",
       );
     } finally {
       setBusy(false);
@@ -170,7 +193,7 @@ export default function AdminVideosPage() {
   return (
     <AdminShell
       title="Video editor"
-      subtitle="Add educational YouTube videos or upload MP4 files for students."
+      subtitle="Add educational YouTube videos or upload video files for students."
     >
       <form onSubmit={addVideo} className="ad-card ad-form">
         <div>
@@ -218,12 +241,13 @@ export default function AdminVideosPage() {
           <select
             id="video-source"
             value={sourceType}
-            onChange={(event) =>
-              setSourceType(event.target.value as "youtube" | "file")
-            }
+            onChange={(event) => {
+              setSourceType(event.target.value as "youtube" | "file");
+              setFile(null);
+            }}
           >
             <option value="youtube">YouTube link</option>
-            <option value="file">Upload MP4</option>
+            <option value="file">Upload video file</option>
           </select>
         </div>
         {sourceType === "youtube" ? (
@@ -240,11 +264,13 @@ export default function AdminVideosPage() {
           </div>
         ) : (
           <div className="full">
-            <label htmlFor="video-file">Video file (MP4, WebM, MOV, AVI, MPEG, or OGG; up to 200 MB)</label>
+            <label htmlFor="video-file">
+              Video file (MP4, WebM, MOV, AVI, MPEG, OGG, or 3GP; up to 200 MB)
+            </label>
             <input
               id="video-file"
               type="file"
-              accept="video/*"
+              accept={VIDEO_ACCEPT}
               required
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
@@ -274,7 +300,7 @@ export default function AdminVideosPage() {
           </button>
         </div>
         {message && (
-          <p className="ad-msg full" role="status">
+          <p className="ad-msg full" role="status" aria-live="polite">
             {message}
           </p>
         )}
