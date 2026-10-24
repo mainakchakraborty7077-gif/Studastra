@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, ClipboardCheck, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, Sparkles, StickyNote, Target, Timer, Trash2, TrendingUp } from "lucide-react";
+import { ArrowRight, BookOpen, ClipboardCheck, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 
@@ -11,7 +11,7 @@ type StudyItem = { id: string; title: string; body: string; kind: "goal" | "note
 const t = { morning: "Good Morning", afternoon: "Good Afternoon", evening: "Good Evening", student: "Student", search: "Search everything…", today: "Today's Goal", entries: "entries", streak: "Study Streak", days: "Days", week: "This Week's Progress", cont: "Continue Learning", open: "Open", first: "Add your first goal or note below.", subjects: "Subjects", ach: "Achievements", space: "Your study space", add: "Add a goal or note", saved: "Your saved entries", empty: "Nothing here yet. Add your first goal or note.", soon: "Soon", goal: "Study goal", note: "Study note", save: "Save to my account", saving: "Saving…", type: "Entry type", title: "Title", details: "Details", mention: "mentions" };
 const NAV = [
   { en: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { en: "Subjects", icon: BookOpen },
+  { en: "Syllabus", icon: BookOpen, href: "/dashboard/syllabus" },
   { en: "DPP", icon: ListChecks },
   { en: "Question Bank", icon: Library },
   { en: "Notes", icon: StickyNote, href: "#space" },
@@ -21,6 +21,7 @@ const NAV = [
   { en: "Focus Timer", icon: Timer, href: "/dashboard/focus" },
   { en: "Progress", icon: TrendingUp },
   { en: "Settings", icon: Settings, href: "/profile" },
+  { en: "Admin login", icon: ShieldCheck, href: "/admin/login" },
 ];
 const SUBJECTS = [
   { name: "Physics", icon: "⚛️", key: "physics" },
@@ -123,6 +124,10 @@ export default function Dashboard() {
 
         <main className="ds-page">
           <h1 className="ds-hello">{hello}, {name || t.student} 👋</h1>
+          <section className="ds-shortcuts" aria-label="Quick links">
+            <Link href="/dashboard/syllabus" className="ds-card ds-shortcut"><BookOpen size={20} /><span><b>Syllabus</b><small>Class 11 and 12 PCMB chapters</small></span><ArrowRight size={17} /></Link>
+            <Link href="/admin/login" className="ds-card ds-shortcut"><ShieldCheck size={20} /><span><b>Admin login</b><small>Administrator sign in</small></span><ArrowRight size={17} /></Link>
+          </section>
           {message && <p className="ds-msg" role="status">{message}</p>}
 
           <section className="ds-cards3">
@@ -202,6 +207,10 @@ const css = `
 .ds-msg{padding:10px 14px;border-radius:12px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);font-size:14px}
 .ds-card{box-sizing:border-box;padding:20px;border-radius:20px;background:rgba(18,28,37,.85);border:1px solid rgba(255,255,255,.08)}
 .ds-cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.ds-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:-4px 0 18px}
+.ds-shortcut{display:flex;align-items:center;gap:12px;color:inherit;text-decoration:none;border-color:rgba(34,211,238,.22)}
+.ds-shortcut span{display:flex;flex:1;flex-direction:column;gap:3px}
+.ds-shortcut small{font-size:12px;color:rgba(232,241,245,.6)}
 .ds-cards4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
 .ds-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .ds-k{margin:0 0 6px;font-size:13px;color:rgba(232,241,245,.6)}
@@ -231,6 +240,6 @@ const css = `
 .ds-item button{align-self:flex-start;background:none;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:rgba(232,241,245,.7);padding:7px;cursor:pointer}
 .ds-item button:hover{color:#fff;border-color:#22d3ee}
 @media(max-width:1000px){.ds-cards4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:860px){.ds-side{display:none}.ds-cards3,.ds-two{grid-template-columns:1fr}.ds-top{padding:12px 16px}.ds-page{padding:20px 16px 60px}.ds-hello{font-size:26px}.ds-continue{flex-direction:column;align-items:flex-start}}
+@media(max-width:860px){.ds-side{display:none}.ds-shortcuts{grid-template-columns:1fr}.ds-cards3,.ds-two{grid-template-columns:1fr}.ds-top{padding:12px 16px}.ds-page{padding:20px 16px 60px}.ds-hello{font-size:26px}.ds-continue{flex-direction:column;align-items:flex-start}}
 `;
 
