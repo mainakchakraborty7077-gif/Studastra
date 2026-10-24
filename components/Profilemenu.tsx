@@ -26,7 +26,11 @@ function formatDate(value: string | null) {
   });
 }
 
-export default function ProfileMenu() {
+export default function ProfileMenu({
+  className = "fixed right-4 top-4 z-50",
+}: {
+  className?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -112,7 +116,7 @@ export default function ProfileMenu() {
   const incomplete = details.some((d) => !d.value);
 
   return (
-    <div ref={wrapperRef} className="fixed right-4 top-4 z-50">
+    <div ref={wrapperRef} className={className}>
       <button
         type="button"
         onClick={() => {
