@@ -9,6 +9,8 @@ export type LearningVideo = {
   description: string;
   subject: ContentSubject;
   class_level: ContentClass;
+  chapter: string;
+  playlist_order: number;
   youtube_url: string | null;
   file_path: string | null;
   published: boolean;
@@ -31,7 +33,7 @@ export type LearningNote = {
 export function getYouTubeEmbedUrl(value: string): string | null {
   try {
     const url = new URL(value.trim());
-    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const host = url.hostname.toLowerCase().replace(/^www\\./, "");
     let videoId = "";
 
     if (host === "youtu.be") {
@@ -39,7 +41,7 @@ export function getYouTubeEmbedUrl(value: string): string | null {
     } else if (host === "youtube.com" || host === "m.youtube.com") {
       videoId =
         url.searchParams.get("v") ??
-        url.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1] ??
+        url.pathname.match(/^\\/(?:embed|shorts|live)\\/([^/?]+)/)?.[1] ??
         "";
     } else {
       return null;
