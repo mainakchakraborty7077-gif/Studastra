@@ -1,7 +1,196 @@
-"use client"; import { useEffect, useMemo, useState } from "react"; import AdminShell from "@/components/AdminShell"; import { createClient } from "@/lib/supabase/client"; import { SYLLABUS } from "@/lib/syllabus"; type Student = { id: string; full_name: string | null; email: string | null; grade: string | null; target_exam: string | null }; type Session = { user_id: string; minutes: number; created_at: string }; const TOTAL = Object.values(SYLLABUS).reduce((a: number, c: string[]) => a + c.length, 0); const fmt = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`); export default function ProgressPage() { const [students, setStudents] = useState([]); const [chapters, setChapters] = useState<Record>({}); const [sessions, setSessions] = useState([]); const [message, setMessage] = useState("Loading students..."); useEffect(() => { async function load() { const s = createClient(); const [p, c, t] = await Promise.all([ s.from("profiles").select("id,full_name,email,grade,target_exam"), s.from("chapter_progress").select("user_id,studied"), s.from("study_sessions").select("user_id,minutes,created_at"), ]); const err = p.error || c.error || t.error; if (err) { setMessage(err.message); return; } const counts: Record = {}; (c.data || []).forEach((r: { user_id: string; studied: boolean }) => { if (r.studied) counts[r.user_id] = (counts[r.user_id] || 0) + 1; }); setStudents((p.data || []) as Student[]); setChapters(counts); setSessions((t.data || []) as Session[]); setMessage(""); } void load(); }, []); const rows = useMemo(() => { const now = Date.now(); return students.map((st) => { const mine = sessions.filter((x) => x.user_id === st.id); const week = mine.filter((x) => now - new Date(x.created_at).getTime() < 7 * 864e5).reduce((a, x) => a + x.minutes, 0); const total = mine.reduce((a, x) => a + x.minutes, 0); const last = mine.reduce((a, x) => Math.max(a, new Date(x.created_at).getTime()), 0); return { ...st, done: chapters[st.id] || 0, week, total, last }; }).sort((a, b) => b.last - a.last); }, [students, chapters, sessions]); return ( {message && 
-{message}
-} 
-Student	Grade	Exam	Chapters	Last 7 days	Total time	Last active{rows.map((r) => ( 
-{r.full_name || "Unnamed"}
-{r.email}	{r.grade || "-"}	{r.target_exam || "-"}	{r.done}/{TOTAL}	{fmt(r.week)}	{fmt(r.total)}	{r.last ? new Date(r.last).toLocaleDateString() : "-"}))} 
-); } 
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import AdminShell from "@/components/AdminShell";
+import { createClient } from "@/lib/supabase/client";
+import { SYLLABUS } from "@/lib/syllabus";
+
+type Student = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  grade: string | null;
+  target_exam: string | null;
+};
+
+type Session = {
+  user_id: string;
+  minutes: number;
+  created_at: string;
+};
+
+type ChapterProgress = {
+  user_id: string;
+  studied: boolean;
+};
+
+type ProgressRow = Student & {
+  done: number;
+  week: number;
+  total: number;
+  last: number;
+};
+
+const TOTAL = Object.values(SYLLABUS).reduce(
+  (sum, chapters) => sum + chapters.length,
+  0,
+);
+
+function formatMinutes(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+export default function ProgressPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [chapters, setChapters] = useState<Record<string, number>>({});
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [message, setMessage] = useState("Loading students...");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStudents() {
+      try {
+        const supabase = createClient();
+        const [profilesResult, chaptersResult, sessionsResult] =
+          await Promise.all([
+            supabase
+              .from("profiles")
+              .select("id,full_name,email,grade,target_exam"),
+            supabase.from("chapter_progress").select("user_id,studied"),
+            supabase.from("study_sessions").select("user_id,minutes,created_at"),
+          ]);
+
+        const error =
+          profilesResult.error || chaptersResult.error || sessionsResult.error;
+        if (error) throw error;
+
+        const chapterCounts: Record<string, number> = {};
+        (chaptersResult.data as ChapterProgress[] | null)?.forEach((row) => {
+          if (row.studied) {
+            chapterCounts[row.user_id] = (chapterCounts[row.user_id] ?? 0) + 1;
+          }
+        });
+
+        if (cancelled) return;
+
+        setStudents((profilesResult.data ?? []) as Student[]);
+        setChapters(chapterCounts);
+        setSessions((sessionsResult.data ?? []) as Session[]);
+        setMessage("");
+      } catch (error) {
+        if (cancelled) return;
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to load student progress.",
+        );
+      }
+    }
+
+    void loadStudents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const rows = useMemo<ProgressRow[]>(() => {
+    const now = Date.now();
+    const weekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+
+    return students
+      .map((student) => {
+        const studentSessions = sessions.filter(
+          (session) => session.user_id === student.id,
+        );
+
+        const week = studentSessions
+          .filter(
+            (session) =>
+              now - new Date(session.created_at).getTime() <
+              weekInMilliseconds,
+          )
+          .reduce((sum, session) => sum + session.minutes, 0);
+
+        const total = studentSessions.reduce(
+          (sum, session) => sum + session.minutes,
+          0,
+        );
+
+        const last = studentSessions.reduce(
+          (latest, session) =>
+            Math.max(latest, new Date(session.created_at).getTime()),
+          0,
+        );
+
+        return {
+          ...student,
+          done: chapters[student.id] ?? 0,
+          week,
+          total,
+          last,
+        };
+      })
+      .sort((first, second) => second.last - first.last);
+  }, [students, chapters, sessions]);
+
+  return (
+    <AdminShell
+      title="Student progress"
+      subtitle="Review chapter completion and study time for each student."
+    >
+      {message && (
+        <p className="ad-msg" role="status">
+          {message}
+        </p>
+      )}
+
+      {!message && rows.length === 0 && (
+        <div className="ad-card">No student profiles found.</div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="ad-card ad-scroll">
+          <table className="ad-table">
+            <thead>
+              <tr>
+                <th scope="col">Student</th>
+                <th scope="col">Grade</th>
+                <th scope="col">Exam</th>
+                <th scope="col">Chapters</th>
+                <th scope="col">Last 7 days</th>
+                <th scope="col">Total time</th>
+                <th scope="col">Last active</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <strong>{row.full_name || "Unnamed"}</strong>
+                    {row.email && <div className="ad-meta">{row.email}</div>}
+                  </td>
+                  <td>{row.grade || "-"}</td>
+                  <td>{row.target_exam || "-"}</td>
+                  <td>
+                    {row.done}/{TOTAL}
+                  </td>
+                  <td>{formatMinutes(row.week)}</td>
+                  <td>{formatMinutes(row.total)}</td>
+                  <td>
+                    {row.last ? new Date(row.last).toLocaleDateString() : "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AdminShell>
+  );
+}
