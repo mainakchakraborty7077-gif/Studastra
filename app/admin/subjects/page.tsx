@@ -1,30 +1,54 @@
 "use client";
 
 import AdminShell from "@/components/AdminShell";
-import { SYLLABUS } from "@/lib/syllabus";
+import {
+  SYLLABUS_BY_CLASS,
+  type ClassLevel,
+  type Subject,
+} from "@/lib/syllabus";
+
+const CLASSES: { level: ClassLevel; title: string }[] = [
+  { level: "11", title: "Class 11" },
+  { level: "12", title: "Class 12" },
+];
+
+const SUBJECTS: Subject[] = [
+  "Physics",
+  "Chemistry",
+  "Mathematics",
+  "Biology",
+];
 
 export default function SubjectsAdminPage() {
   return (
     <AdminShell
-      title="Subjects"
-      subtitle="Browse the current NCERT-based PCMB chapter outline."
+      title="Syllabus"
+      subtitle="Browse the NCERT-aligned PCMB chapters by class and subject."
     >
-      <div className="ad-grid">
-        {Object.entries(SYLLABUS).map(([subject, chapters]) => (
-          <section className="ad-card" key={subject}>
-            <h2>{subject}</h2>
-            <p className="ad-meta">{chapters.length} chapters</p>
-            <ol>
-              {chapters.map((chapter) => (
-                <li key={chapter}>{chapter}</li>
-              ))}
-            </ol>
-          </section>
-        ))}
-      </div>
+      {CLASSES.map(({ level, title }) => (
+        <section className="ad-card" key={level}>
+          <h2>{title}</h2>
+          <div className="ad-grid">
+            {SUBJECTS.map((subject) => {
+              const chapters = SYLLABUS_BY_CLASS[level][subject];
+
+              return (
+                <article key={subject}>
+                  <h3>{subject}</h3>
+                  <p className="ad-meta">{chapters.length} chapters</p>
+                  <ol>
+                    {chapters.map((chapter) => (
+                      <li key={chapter}>{chapter}</li>
+                    ))}
+                  </ol>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
       <p className="ad-meta">
-        This outline is maintained in <code>lib/syllabus.ts</code>. Database-backed
-        syllabus editing is not configured yet.
+        The chapter lists are maintained in <code>lib/syllabus.ts</code>.
       </p>
     </AdminShell>
   );
