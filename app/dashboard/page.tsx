@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, ClipboardCheck, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, Sparkles, StickyNote, Target, Trash2, TrendingUp } from "lucide-react";
+import { ArrowRight, BookOpen, ClipboardCheck, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, Sparkles, StickyNote, Target, Timer, Trash2, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 
@@ -18,6 +18,7 @@ const NAV = [
   { en: "AI Tutor", icon: Sparkles },
   { en: "Quiz", icon: Target },
   { en: "Tests", icon: ClipboardCheck, href: "/dashboard/tests" },
+  { en: "Focus Timer", icon: Timer, href: "/dashboard/focus" },
   { en: "Progress", icon: TrendingUp },
   { en: "Settings", icon: Settings, href: "/profile" },
 ];
