@@ -110,7 +110,7 @@ values (
 on conflict (id) do update set
   public = false,
   file_size_limit = 209715200,
-  allowed_mime_types = array['image/jpeg', 'video/mp4', 'application/pdf'];
+  allowed_mime_types = array['image/jpeg', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg', 'video/ogg', 'video/3gpp', 'application/pdf'];
 
 drop policy if exists "students read published learning media" on storage.objects;
 create policy "students read published learning media" on storage.objects
