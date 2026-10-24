@@ -105,7 +105,7 @@ values (
   'learning-content',
   false,
   209715200,
-  array['image/jpeg', 'video/mp4', 'application/pdf']
+  array['image/jpeg', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg', 'video/ogg', 'video/3gpp', 'application/pdf']
 )
 on conflict (id) do update set
   public = false,
