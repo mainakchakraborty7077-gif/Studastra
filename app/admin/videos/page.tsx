@@ -18,6 +18,7 @@ const SUBJECTS: ContentSubject[] = [
   "Biology",
 ];
 const CLASSES: ContentClass[] = ["11", "12"];
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/mpeg", "video/ogg", "video/3gpp"];
 const VIDEO_SELECT =
   "id,title,description,subject,class_level,youtube_url,file_path,published,created_at";
 
@@ -74,18 +75,20 @@ export default function AdminVideosPage() {
       }
 
       if (sourceType === "file") {
-        if (!file || file.type !== "video/mp4") {
-          throw new Error("Choose an MP4 video file.");
+        if (!file || !VIDEO_TYPES.includes(file.type)) {
+          throw new Error("Choose a supported video file such as MP4, WebM, MOV, AVI, MPEG, or OGG.");
         }
         if (file.size > 200 * 1024 * 1024) {
           throw new Error("The video must be 200 MB or smaller.");
         }
 
-        uploadedPath = "videos/" + crypto.randomUUID() + ".mp4";
+        const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!extension) throw new Error("The video file needs a valid extension.");
+        uploadedPath = "videos/" + crypto.randomUUID() + "." + extension;
         const { error: uploadError } = await supabase.storage
           .from(LEARNING_CONTENT_BUCKET)
           .upload(uploadedPath, file, {
-            contentType: "video/mp4",
+            contentType: file.type,
             upsert: false,
           });
         if (uploadError) throw uploadError;
@@ -237,11 +240,11 @@ export default function AdminVideosPage() {
           </div>
         ) : (
           <div className="full">
-            <label htmlFor="video-file">MP4 video (up to 200 MB)</label>
+            <label htmlFor="video-file">Video file (MP4, WebM, MOV, AVI, MPEG, or OGG; up to 200 MB)</label>
             <input
               id="video-file"
               type="file"
-              accept="video/mp4,.mp4"
+              accept="video/*"
               required
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
@@ -289,7 +292,7 @@ export default function AdminVideosPage() {
               </p>
               <p className="ad-meta">
                 Class {video.class_level} · {video.subject} ·{" "}
-                {video.youtube_url ? "YouTube" : "MP4 upload"} ·{" "}
+                {video.youtube_url ? "YouTube" : "Video file"} ·{" "}
                 {video.published ? "Published" : "Draft"}
               </p>
               <div>
