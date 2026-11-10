@@ -19,19 +19,23 @@ export function Alert({ kind, children }: { kind: "err" | "ok" | "warn"; childre
 
 export function MobileField({
   id = "mobile", value, onChange, error, disabled, autoFocus,
-}: { id?: string; value: string; onChange: (v: string) => void; error?: string | null; disabled?: boolean; autoFocus?: boolean }) {
+  label = "Mobile number", placeholder = "98765 43210", prefix = "🇮🇳 +91",
+}: {
+  id?: string; value: string; onChange: (v: string) => void; error?: string | null; disabled?: boolean; autoFocus?: boolean;
+  label?: string; placeholder?: string; prefix?: ReactNode;
+}) {
   return (
     <div>
-      <label className="ax-label" htmlFor={id}>Mobile number</label>
+      <label className="ax-label" htmlFor={id}>{label}</label>
       <div className={`ax-field ${error ? "bad" : ""}`}>
-        <span className="ax-cc" aria-hidden="true">🇮🇳 +91</span>
+        <span className="ax-cc" aria-hidden="true">{prefix}</span>
         <input
           id={id}
           className="ax-input"
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
-          placeholder="98765 43210"
+          placeholder={placeholder}
           maxLength={11}
           value={value}
           disabled={disabled}

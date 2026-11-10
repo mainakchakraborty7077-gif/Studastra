@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, GraduationCap, KeyRound, MessageSquareText, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, GraduationCap, Info, Lock, ShieldCheck, Smartphone, UserRound, Users, Zap } from "lucide-react";
+import Logo from "@/components/Logo";
 import { Alert, MobileField, OtpInput, PasswordField, Spinner, postJson, useCountdown } from "@/components/auth/fields";
 import { maskMobile, mobileError, normalizeMobile } from "@/lib/auth/phone";
 
@@ -91,7 +92,7 @@ export default function LoginClient({ params: initial }: { params: Record<string
       setStep("newpass");
       return;
     }
-    router.replace(res.redirect || "/dashboard");
+    router.replace(res.redirect || "/profile");
     router.refresh();
   }
 
@@ -104,7 +105,7 @@ export default function LoginClient({ params: initial }: { params: Record<string
     setBusy(true); setError(null);
     const res = await postJson<{ redirect?: string }>("/api/auth/password/login", { mobile, role, password, next });
     if (!res.ok) { setBusy(false); setError(res.error ?? null); return; }
-    router.replace(res.redirect || "/dashboard");
+    router.replace(res.redirect || "/profile");
     router.refresh();
   }
 
@@ -122,25 +123,33 @@ export default function LoginClient({ params: initial }: { params: Record<string
     if (!res.ok) { setError(res.error ?? null); return; }
     setStep("done");
     setInfo("Your password has been updated and you're signed in.");
-    setTimeout(() => { router.replace(res.redirect || "/dashboard"); router.refresh(); }, 1200);
+    setTimeout(() => { router.replace(res.redirect || "/profile"); router.refresh(); }, 1200);
   }
 
   const roleLabel = role === "student" ? "Student" : "Parent";
   const isForgot = mode === "forgot";
 
+  const mobileProps = {
+    label: "Registered Mobile Number",
+    placeholder: "Enter mobile number",
+    prefix: <><Smartphone size={17} /> +91</>,
+  };
+
   return (
-    <div className="ax-card">
-      <div className="ax-card-head">
+    <div className="ax-card lg-card">
+      <div className="lg-card-brand">
+        <Logo size={46} label="Studastra" href={null} textSize={24} />
+      </div>
+      <div className="lg-card-head">
         {isForgot ? (
           <>
-            <span className="ax-chip"><KeyRound size={12} /> ACCOUNT RECOVERY</span>
-            <h2 className="ax-h1">Reset your password</h2>
-            <p className="ax-sub">Verify your mobile number with a one-time code, then choose a new password.</p>
+            <h2>Reset your password</h2>
+            <p>Verify your mobile number with a one-time code, then choose a new password.</p>
           </>
         ) : (
           <>
-            <h2 className="ax-h1">Welcome Back, Explorer!</h2>
-            <p className="ax-sub">Continue your journey towards academic excellence.</p>
+            <h2>Welcome Back!</h2>
+            <p>Access your learning dashboard</p>
           </>
         )}
       </div>
@@ -151,20 +160,22 @@ export default function LoginClient({ params: initial }: { params: Record<string
       <div className="ax-seg" role="tablist" aria-label="I am a" data-right={role === "parent" ? "1" : "0"}>
         <span className="ax-seg-ind" aria-hidden="true" />
         <button type="button" role="tab" aria-selected={role === "student"} onClick={() => { setRole("student"); resetFlow(); }} disabled={busy}>
-          <GraduationCap size={16} /> Student
+          <GraduationCap size={17} /> Student
         </button>
         <button type="button" role="tab" aria-selected={role === "parent"} onClick={() => { setRole("parent"); resetFlow(); }} disabled={busy}>
-          <Users size={16} /> Parent
+          <Users size={17} /> Parent
         </button>
       </div>
 
+      <h3 className="lg-sub">{isForgot ? `${roleLabel} Password Reset` : `${roleLabel} Login`}</h3>
+
       {!isForgot && (
-        <div className="ax-tabs" role="tablist" aria-label="Sign-in method">
+        <div className="lg-method" role="tablist" aria-label="Sign-in method">
           <button type="button" role="tab" aria-selected={method === "otp"} onClick={() => { setMethod("otp"); resetFlow("login"); }} disabled={busy}>
-            <MessageSquareText size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Login with OTP
+            <Smartphone size={16} /> Mobile OTP
           </button>
           <button type="button" role="tab" aria-selected={method === "password"} onClick={() => { setMethod("password"); resetFlow("login"); }} disabled={busy}>
-            <KeyRound size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Login with Password
+            <Lock size={16} /> Password
           </button>
         </div>
       )}
@@ -172,18 +183,14 @@ export default function LoginClient({ params: initial }: { params: Record<string
       {/* ---------- OTP login & recovery ---------- */}
       {(isForgot || method === "otp") && step === "mobile" && (
         <form className="ax-form" onSubmit={(e) => { e.preventDefault(); void sendOtp(isForgot ? "reset" : "login"); }} noValidate>
-          <MobileField value={mobile} onChange={(v) => { setMobile(v); setFieldErr((f) => ({ ...f, mobile: null })); }} error={fieldErr.mobile} autoFocus />
+          <MobileField {...mobileProps} value={mobile} onChange={(v) => { setMobile(v); setFieldErr((f) => ({ ...f, mobile: null })); }} error={fieldErr.mobile} autoFocus />
+          <p className="lg-info"><Info size={14} aria-hidden="true" /> An OTP will be sent to your registered mobile number.</p>
           <button className="ax-btn" type="submit" disabled={busy}>
-            {busy ? <><Spinner /> Sending code…</> : "Send OTP"}
+            {busy ? <><Spinner /> Sending OTP…</> : <>Get OTP <ArrowRight size={17} /></>}
           </button>
-          {isForgot ? (
+          {isForgot && (
             <div className="ax-row" style={{ justifyContent: "center" }}>
               <button type="button" className="ax-link" onClick={() => resetFlow("login")}>← Back to sign in</button>
-            </div>
-          ) : (
-            <div className="ax-row">
-              <span className="ax-muted">Signing in as a {roleLabel.toLowerCase()}</span>
-              <button type="button" className="ax-link gold" onClick={() => resetFlow("forgot")}>Forgot Password?</button>
             </div>
           )}
         </form>
@@ -195,16 +202,16 @@ export default function LoginClient({ params: initial }: { params: Record<string
             <ArrowLeft size={14} /> Change number
           </button>
           <div>
-            <div className="ax-label"><span>Enter the 6-digit code</span><span className="ax-muted">{e164 ? maskMobile(e164) : ""}</span></div>
+            <div className="ax-label"><span>Enter the 6-digit OTP</span><span className="ax-muted">{e164 ? maskMobile(e164) : ""}</span></div>
             <OtpInput value={code} onChange={(v) => { setCode(v); setFieldErr((f) => ({ ...f, code: null })); }} onComplete={(v) => { if (!busy) void verifyOtp(isForgot ? "reset" : "login", v); }} />
             {fieldErr.code && <p className="ax-hint">{fieldErr.code}</p>}
           </div>
-          <button className="ax-btn alt" type="submit" disabled={busy}>
-            {busy ? <><Spinner /> Verifying…</> : isForgot ? "Verify code" : "Verify & Sign in"}
+          <button className="ax-btn" type="submit" disabled={busy}>
+            {busy ? <><Spinner /> Verifying…</> : isForgot ? <>Verify OTP <ArrowRight size={17} /></> : <>Verify &amp; Login <ArrowRight size={17} /></>}
           </button>
           <div className="ax-row" style={{ justifyContent: "center" }}>
             {countdown.left > 0 ? (
-              <span className="ax-muted">Resend code in 0:{String(countdown.left).padStart(2, "0")}</span>
+              <span className="ax-muted">Resend OTP in 0:{String(countdown.left).padStart(2, "0")}</span>
             ) : (
               <button type="button" className="ax-link" disabled={busy} onClick={() => void sendOtp(isForgot ? "reset" : "login")}>Didn&apos;t get it? Resend OTP</button>
             )}
@@ -228,11 +235,11 @@ export default function LoginClient({ params: initial }: { params: Record<string
       {/* ---------- Password login ---------- */}
       {!isForgot && method === "password" && (
         <form className="ax-form" onSubmit={passwordLogin} noValidate>
-          <MobileField value={mobile} onChange={(v) => { setMobile(v); setFieldErr((f) => ({ ...f, mobile: null })); }} error={fieldErr.mobile} autoFocus />
+          <MobileField {...mobileProps} value={mobile} onChange={(v) => { setMobile(v); setFieldErr((f) => ({ ...f, mobile: null })); }} error={fieldErr.mobile} autoFocus />
           <PasswordField value={password} onChange={(v) => { setPassword(v); setFieldErr((f) => ({ ...f, password: null })); }} error={fieldErr.password}
             aside={<button type="button" className="ax-link gold" onClick={() => resetFlow("forgot")}>Forgot Password?</button>} />
           <button className="ax-btn" type="submit" disabled={busy}>
-            {busy ? <><Spinner /> Signing in…</> : `Sign in as ${roleLabel}`}
+            {busy ? <><Spinner /> Logging in…</> : <>Login <ArrowRight size={17} /></>}
           </button>
         </form>
       )}
@@ -240,17 +247,21 @@ export default function LoginClient({ params: initial }: { params: Record<string
       {error && <Alert kind="err">{error}</Alert>}
       {info && !error && <Alert kind="ok">{info}</Alert>}
 
-      <p className="ax-note">
-        <ShieldCheck size={13} style={{ verticalAlign: -2, marginRight: 4 }} />
-        Accounts are created by your institute. <Link href="/register">New here?</Link>
+      <p className="lg-or">or</p>
+      <p className="lg-help">
+        New {role === "parent" ? "parent" : "student"}? Contact the institute for <Link href="/register">registration</Link>.
+        <br />
+        Need help? <Link href="/support">Contact support.</Link>
+        {!isForgot && method === "otp" && (
+          <> · <button type="button" onClick={() => resetFlow("forgot")}>Forgot password?</button></>
+        )}
       </p>
 
-      <nav className="ax-foot" aria-label="Help and policies">
-        <Link href="/support">Contact Support</Link>
-        <Link href="/privacy">Privacy Policy</Link>
-        <Link href="/terms">Terms of Service</Link>
-        <Link href="/admin/login">Staff login</Link>
-      </nav>
+      <div className="lg-badges">
+        <span><ShieldCheck size={16} aria-hidden="true" /> Secure &amp; Private</span>
+        <span><Zap size={16} aria-hidden="true" /> Fast Access</span>
+        <span><UserRound size={16} aria-hidden="true" /> Your Data Our Priority</span>
+      </div>
     </div>
   );
 }
