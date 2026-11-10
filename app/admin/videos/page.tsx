@@ -44,7 +44,7 @@ export default function AdminVideosPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Loading videos...");
 
-  const chapters = SYLLABUS_BY_CLASS[classLevel][subject];
+  const chapters: readonly string[] = SYLLABUS_BY_CLASS[classLevel][subject];
 
   async function loadVideos() {
     const supabase = createClient();
