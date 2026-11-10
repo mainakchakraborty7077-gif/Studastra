@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import AuthScene from "@/components/auth/AuthScene";
 import LoginClient from "./LoginClient";
@@ -8,12 +7,16 @@ export const metadata: Metadata = {
   description: "Sign in to StudAstra as a student or parent with your mobile number.",
 };
 
-export default function LoginPage() {
+export const dynamic = "force-dynamic";
+
+type SP = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function LoginPage({ searchParams }: { searchParams: SP }) {
+  const sp = await searchParams;
+  const params = Object.fromEntries(Object.entries(sp).map(([k, v]) => [k, Array.isArray(v) ? v[0] ?? "" : v ?? ""]));
   return (
     <AuthScene>
-      <Suspense fallback={<div className="ax-card" aria-busy="true" style={{ minHeight: 420 }} />}>
-        <LoginClient />
-      </Suspense>
+      <LoginClient params={params} />
     </AuthScene>
   );
 }

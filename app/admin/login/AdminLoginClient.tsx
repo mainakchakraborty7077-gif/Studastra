@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Lock, ShieldCheck, Smartphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, OtpInput, PasswordField, Spinner, postJson } from "@/components/auth/fields";
@@ -10,9 +10,9 @@ import { landingFor } from "@/lib/auth/roles";
 
 type Step = "checking" | "creds" | "enroll" | "challenge";
 
-export default function AdminLoginClient() {
+export default function AdminLoginClient({ params: initial }: { params: Record<string, string> }) {
   const router = useRouter();
-  const params = useSearchParams();
+  const params = { get: (k: string): string | null => initial[k] || null };
   const next = params.get("next");
   const reason = params.get("reason");
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, GraduationCap, KeyRound, MessageSquareText, ShieldCheck, Users } from "lucide-react";
 import { Alert, MobileField, OtpInput, PasswordField, Spinner, postJson, useCountdown } from "@/components/auth/fields";
 import { maskMobile, mobileError, normalizeMobile } from "@/lib/auth/phone";
@@ -21,9 +21,9 @@ const REASONS: Record<string, { kind: "warn" | "ok" | "err"; text: string }> = {
   reset: { kind: "ok", text: "Password updated. Sign in with your new password." },
 };
 
-export default function LoginClient() {
+export default function LoginClient({ params: initial }: { params: Record<string, string> }) {
   const router = useRouter();
-  const params = useSearchParams();
+  const params = { get: (k: string): string | null => initial[k] || null };
   const next = params.get("next");
   const reason = params.get("reason");
 

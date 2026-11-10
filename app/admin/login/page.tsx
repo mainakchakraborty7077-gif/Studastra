@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import AuthScene from "@/components/auth/AuthScene";
 import AdminLoginClient from "./AdminLoginClient";
@@ -8,12 +7,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminLoginPage() {
+export const dynamic = "force-dynamic";
+
+type SP = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function AdminLoginPage({ searchParams }: { searchParams: SP }) {
+  const sp = await searchParams;
+  const params = Object.fromEntries(Object.entries(sp).map(([k, v]) => [k, Array.isArray(v) ? v[0] ?? "" : v ?? ""]));
   return (
     <AuthScene badges={false}>
-      <Suspense fallback={<div className="ax-card" aria-busy="true" style={{ minHeight: 380 }} />}>
-        <AdminLoginClient />
-      </Suspense>
+      <AdminLoginClient params={params} />
     </AuthScene>
   );
 }
