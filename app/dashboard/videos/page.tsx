@@ -36,6 +36,7 @@ export default function StudentVideosPage() {
   const [classFilter, setClassFilter] = useState<ClassFilter>("all");
   const [chapterFilter, setChapterFilter] = useState("all");
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [unlockedVideos, setUnlockedVideos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -192,7 +193,11 @@ export default function StudentVideosPage() {
 
                 {selected && (
                   <div className="vl-player">
-                    {embedUrl ? (
+                    {!unlockedVideos[selected.id] ? (
+                      <div className="vl-gate">
+                        <button type="button" className="vl-get" onClick={() => setUnlockedVideos((prev) => ({ ...prev, [selected.id]: true }))}>Get this class for free</button>
+                      </div>
+                    ) : embedUrl ? (
                       <iframe src={embedUrl} title={selected.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
                     ) : selected.signedUrl ? (
                       <video controls preload="metadata" src={selected.signedUrl}>Your browser does not support HTML video.</video>
@@ -247,6 +252,9 @@ const styles = `
 .vl-playlist-head h2{font-size:22px;margin:7px 0}
 .vl-playlist-head p{margin:5px 0}
 .vl-player{padding:0 20px 18px}
+.vl-gate{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:16/9;max-height:600px;border-radius:12px;background:radial-gradient(ellipse at center,#123542 0%,#05080b 75%)}
+.vl-get{padding:14px 26px;border:none;border-radius:999px;background:linear-gradient(90deg,#f5c542,#7fe7f2);color:#05222a;font-weight:700;font-size:17px;cursor:pointer}
+.vl-get:hover{filter:brightness(1.1)}
 .vl-player iframe,.vl-player video{display:block;width:100%;max-height:600px;aspect-ratio:16/9;border:0;border-radius:12px;background:#05080b}
 .vl-player h3{font-size:19px;margin:8px 0}
 .vl-player p{margin:7px 0}
