@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { homeForRole, requiredAdminPermission } from "@/lib/auth/roles";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env";
 
-// Route areas and who may open them. Every page also re-checks on its own
+// Route areas and who may open them. Anything not listed here — including the
+// public home page "/", /login, /register, /privacy, /terms and /support — is public. Every page also re-checks on its own
 // (server components / RLS), so this is the first line of defence, not the only one.
 const AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/admin", roles: ["admin", "teacher"] },

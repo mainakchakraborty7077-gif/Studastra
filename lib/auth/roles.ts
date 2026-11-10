@@ -18,13 +18,16 @@ export function isPermission(v: unknown): v is Permission {
   return PERMISSIONS.some((p) => p.id === v);
 }
 
-/** Where each role lands after signing in. */
+/**
+ * Where each role lands after signing in (or when opening /login while signed in).
+ * Students see their profile first; it links on to /dashboard.
+ */
 export function homeForRole(role: Role | string | null | undefined): string {
   switch (role) {
     case "parent": return "/parent/dashboard";
     case "teacher":
     case "admin": return "/admin";
-    case "student": return "/dashboard";
+    case "student": return "/profile";
     default: return "/login";
   }
 }
