@@ -44,7 +44,7 @@ export default function ProfilePage() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
       if (!user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
       setUserId(user.id);
@@ -105,11 +105,9 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth");
-    router.refresh();
+  function handleSignOut() {
+    // Server route clears the session cookie and returns to the login page.
+    window.location.href = "/logout";
   }
 
   if (loading) {

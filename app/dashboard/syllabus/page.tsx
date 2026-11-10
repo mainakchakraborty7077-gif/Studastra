@@ -36,7 +36,7 @@ export default function StudentSyllabusPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
 

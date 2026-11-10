@@ -49,7 +49,7 @@ export default function StudentVideosPage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
 

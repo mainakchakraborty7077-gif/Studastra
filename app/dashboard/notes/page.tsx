@@ -34,7 +34,7 @@ export default function StudentNotesPage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
 
