@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { DashboardBar } from "@/components/DashboardBrand";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -144,7 +144,7 @@ export default function StudentVideosPage() {
     <main className="vl-page">
       <style>{styles}</style>
       <div className="vl-wrap">
-        <Link href="/dashboard" className="vl-back">← Back to dashboard</Link>
+        <DashboardBar />
         <header>
           <p className="vl-kicker">STUDY LIBRARY</p>
           <h1>Educational video playlists</h1>

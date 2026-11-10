@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { DashboardBar } from "@/components/DashboardBrand";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -89,7 +89,7 @@ export default function FocusPage() {
     <div className="fp-shell">
       <style>{css}</style>
       <div className="fp-wrap">
-        <Link href="/dashboard" className="fp-back">← Back to dashboard</Link>
+        <DashboardBar />
         <h1 className="fp-title">Focus timer</h1>
         <p className="fp-sub">Pick a subject, start the clock, and every finished session is saved to your account.</p>
 

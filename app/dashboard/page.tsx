@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import Logo from "@/components/Logo";
+import DashboardBrand from "@/components/DashboardBrand";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, Video, TrendingUp } from "lucide-react";
@@ -109,7 +109,7 @@ export default function Dashboard() {
       <style>{css}</style>
       <TwinkleStars />
       <aside className="ds-side">
-        <Logo size={38} href="/dashboard" className="ds-logo" textSize={20} />
+        <div className="ds-logo"><DashboardBrand /></div>
         <nav className="ds-nav">
           {NAV.map(n => {
             const Icon = n.icon; const label = n.en;
@@ -123,6 +123,7 @@ export default function Dashboard() {
 
       <div className="ds-main">
         <header className="ds-top">
+          <div className="ds-top-logo"><DashboardBrand /></div>
           <label className="ds-search"><Search size={16} /><input value={q} onChange={e => setQ(e.target.value)} placeholder={t.search} aria-label={t.search} /></label>
           <ProfileMenu className="ds-pm" />
         </header>
@@ -194,8 +195,8 @@ export default function Dashboard() {
 const css = `
 .ds-shell{position:relative;display:flex;min-height:100vh;background:radial-gradient(ellipse at 70% 0%,#0f2530 0%,#0a1016 55%);color:#e8f1f5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .ds-side{width:248px;flex-shrink:0;position:sticky;top:0;z-index:1;height:100vh;box-sizing:border-box;padding:16px 12px;display:flex;flex-direction:column;gap:18px;background:#0c141b;border-right:1px solid rgba(255,255,255,.07)}
-.ds-logo{display:flex;align-items:center;gap:10px;padding:6px 8px;color:#7fe7f2;text-decoration:none;font-size:20px}
-.ds-mark{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#123846,#0a1a24);border:1px solid rgba(34,211,238,.4);color:#22d3ee}
+.ds-logo{display:flex;align-items:center;padding:4px 4px 2px;min-width:0}
+.ds-top-logo{display:none;flex-shrink:0}
 .ds-nav{display:flex;flex-direction:column;gap:4px;flex:1;overflow:auto}
 .ds-link{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(232,241,245,.72);font-size:15px;text-decoration:none;border:1px solid transparent}
 .ds-link:hover{color:#fff;background:rgba(255,255,255,.05)}
@@ -210,6 +211,7 @@ const css = `
 .ds-search input{flex:1;background:none;border:0;outline:0;color:#e8f1f5;font-size:14px;font-family:inherit;min-width:0}
 .ds-pm{position:relative;margin-left:auto}
 .ds-page{max-width:1120px;margin:0 auto;padding:26px 28px 70px}
+.ds-page section:not(.ds-card){padding:0}
 .ds-hello{font-size:34px;margin:0 0 20px;font-weight:700}
 .ds-msg{padding:10px 14px;border-radius:12px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);font-size:14px}
 .ds-card{box-sizing:border-box;padding:20px;border-radius:20px;background:rgba(18,28,37,.85);border:1px solid rgba(255,255,255,.08)}
@@ -247,6 +249,6 @@ const css = `
 .ds-item button{align-self:flex-start;background:none;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:rgba(232,241,245,.7);padding:7px;cursor:pointer}
 .ds-item button:hover{color:#fff;border-color:#22d3ee}
 @media(max-width:1000px){.ds-cards4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:860px){.ds-side{display:none}.ds-shortcuts{grid-template-columns:1fr}.ds-cards3,.ds-two{grid-template-columns:1fr}.ds-top{padding:12px 16px}.ds-page{padding:20px 16px 60px}.ds-hello{font-size:26px}.ds-continue{flex-direction:column;align-items:flex-start}}
+@media(max-width:860px){.ds-side{display:none}.ds-top-logo{display:flex}.ds-top{flex-wrap:wrap}.ds-search{order:3;flex-basis:100%;max-width:none}.ds-shortcuts{grid-template-columns:1fr}.ds-cards3,.ds-two{grid-template-columns:1fr}.ds-top{padding:12px 16px}.ds-page{padding:20px 16px 60px}.ds-hello{font-size:26px}.ds-continue{flex-direction:column;align-items:flex-start}}
 `;
 

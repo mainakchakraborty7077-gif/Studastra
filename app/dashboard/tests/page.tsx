@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Logo from "@/components/Logo";
+import { DashboardBar } from "@/components/DashboardBrand";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, ClipboardList, Clock3 } from "lucide-react";
+import { CheckCircle2, ClipboardList, Clock3 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type TestRow = { id: string; title: string; description: string; created_at: string; duration_minutes: number };
@@ -37,7 +37,7 @@ export default function PracticeTestsPage() {
   const latestAttempt = (testId: string) => attempts.find((attempt) => attempt.test_id === testId);
 
   return <main className="wrap" style={{ paddingTop: 24, paddingBottom: 60 }}>
-    <header className="nav" style={{ height: 64 }}><Logo size={38} href="/dashboard" /><Link className="btn small" href="/dashboard"><ArrowLeft size={14}/> Dashboard</Link></header>
+    <DashboardBar />
     <section><span className="pill"><ClipboardList size={14}/> PRACTICE TESTS</span><h1 style={{ fontSize: 38, marginBottom: 4 }}>Test your understanding</h1><p className="muted">Choose a practice test and get your score as soon as you submit.</p>{message && <p className="muted" role="status">{message}</p>}
       {!message && tests.length === 0 && <div className="panel empty">No tests are published yet. Check back soon.</div>}
       <div className="features">{tests.map((test) => {
