@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Flag, Image as ImageIcon, Info, Send, Trash2 } from "lucide-react";
@@ -40,7 +41,7 @@ export default function TakeTestPage() {
     async function load() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/auth"); return; }
+      if (!user) { router.replace("/login?reason=signin"); return; }
       const { data: testRow, error: testError } = await supabase.from("tests").select("id,title,description,duration_minutes").eq("id", testId).eq("published", true).single();
       if (testError) throw testError;
       const { data: questionRows, error: questionError } = await supabase.from("test_questions").select("id,prompt,question_type,options,match_left,position,image_path").eq("test_id", testId).order("position");
@@ -184,7 +185,7 @@ export default function TakeTestPage() {
   const clock = secondsLeft === null ? "--:--" : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
   return <main className="exam-page">
-    <header className="exam-topbar"><Link className="brand" href="/dashboard"><span className="logo">✦</span> StudAstra <span className="exam-label">JEE CBT PRACTICE</span></Link><div className="exam-title">{test?.title || "Practice exam"}</div><div className={`exam-clock ${secondsLeft !== null && secondsLeft < 300 ? "exam-clock-low" : ""}`} aria-live="polite"><Clock3 size={17}/><span>Time Left&nbsp; {clock}</span></div><div className="exam-toplinks"><span><BookOpen size={14}/> Question Paper</span><span><Info size={14}/> Instructions</span></div></header>
+    <header className="exam-topbar"><Link className="brand" href="/dashboard"><Logo size={30} label={null} href={null} /> StudAstra <span className="exam-label">JEE CBT PRACTICE</span></Link><div className="exam-title">{test?.title || "Practice exam"}</div><div className={`exam-clock ${secondsLeft !== null && secondsLeft < 300 ? "exam-clock-low" : ""}`} aria-live="polite"><Clock3 size={17}/><span>Time Left&nbsp; {clock}</span></div><div className="exam-toplinks"><span><BookOpen size={14}/> Question Paper</span><span><Info size={14}/> Instructions</span></div></header>
     {result ? <section className="exam-result"><span className="pill">EXAM COMPLETE</span><h1>Your score: {result.score} / {result.total}</h1><p className="muted">Your result is saved to your account.</p><Link className="btn primary" href="/dashboard/tests">Back to practice tests</Link></section> : <div className="exam-layout">
       <section className="exam-main">
         <div className="exam-subjectbar"><span className="exam-subject">Practice Test <Info size={13}/></span><span className="exam-subject-help">{test?.title}</span></div>

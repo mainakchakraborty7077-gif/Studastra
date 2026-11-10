@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, Video, TrendingUp } from "lucide-react";
@@ -49,7 +50,7 @@ export default function Dashboard() {
     try {
       const s = createClient();
       const { data: { user }, error: userError } = await s.auth.getUser();
-      if (userError || !user) { router.replace("/auth"); return; }
+      if (userError || !user) { router.replace("/login?reason=signin"); return; }
       const { data: p } = await s.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
       const full = p?.full_name || (user.user_metadata?.display_name as string) || "";
       setName(full.trim().split(" ")[0] || "");
@@ -66,7 +67,7 @@ export default function Dashboard() {
     try {
       const s = createClient();
       const { data: { user } } = await s.auth.getUser();
-      if (!user) { router.replace("/auth"); return; }
+      if (!user) { router.replace("/login?reason=signin"); return; }
       const { data, error } = await s.from("study_items").insert({ user_id: user.id, title: title.trim(), body: body.trim(), kind }).select("id,title,body,kind,created_at").single();
       if (error) throw error;
       setItems(old => [data as StudyItem, ...old]); setTitle(""); setBody(""); setMessage("Saved to your account.");
@@ -108,7 +109,7 @@ export default function Dashboard() {
       <style>{css}</style>
       <TwinkleStars />
       <aside className="ds-side">
-        <Link href="/" className="ds-logo"><span className="ds-mark">✦</span><b>StudAstra</b></Link>
+        <Logo size={38} href="/dashboard" className="ds-logo" textSize={20} />
         <nav className="ds-nav">
           {NAV.map(n => {
             const Icon = n.icon; const label = n.en;
