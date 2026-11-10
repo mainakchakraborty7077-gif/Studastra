@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { DashboardBar } from "@/components/DashboardBrand";
 import { useRouter } from "next/navigation";
 import {
   SYLLABUS_BY_CLASS,
@@ -36,7 +36,7 @@ export default function StudentSyllabusPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
 
@@ -62,9 +62,7 @@ export default function StudentSyllabusPage() {
     <main className="sy-page">
       <style>{styles}</style>
       <div className="sy-wrap">
-        <Link href="/dashboard" className="sy-back">
-          ← Back to dashboard
-        </Link>
+        <DashboardBar />
         <header className="sy-header">
           <span className="sy-kicker">STUDY PLAN</span>
           <h1>Syllabus</h1>

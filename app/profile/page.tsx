@@ -4,7 +4,19 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ArrowRight } from "lucide-react";
 import CosmicBackdrop from "@/components/CosmicBackdrop";
+import Logo from "@/components/Logo";
+
+const ctaCss = `
+.pf-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pf-top .sa-logo-text{color:#fff}
+.pf-cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;box-sizing:border-box;margin-top:22px;padding:15px 18px;border-radius:14px;
+  background:linear-gradient(100deg,#8b5cf6 0%,#6d6bff 45%,#3b9dff 100%);color:#fff;font-weight:700;font-size:16px;text-decoration:none;
+  box-shadow:0 10px 28px rgba(91,108,255,.38);transition:transform .15s,box-shadow .2s}
+.pf-cta:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(91,108,255,.5)}
+.pf-cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
+`;
 
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Not sure"];
@@ -44,7 +56,7 @@ export default function ProfilePage() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
       if (!user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
       setUserId(user.id);
@@ -105,11 +117,9 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth");
-    router.refresh();
+  function handleSignOut() {
+    // Server route clears the session cookie and returns to the login page.
+    window.location.href = "/logout";
   }
 
   if (loading) {
@@ -140,10 +150,12 @@ export default function ProfilePage() {
 
   return (
     <CosmicBackdrop>
+      <style>{ctaCss}</style>
       <div className="sa-card wide">
-        <Link href="/dashboard" className="sa-back">
-          ← Back to dashboard
-        </Link>
+        <div className="pf-top">
+          <Logo size={36} href="/dashboard" textSize={18} />
+          <Link href="/dashboard" className="sa-back">Dashboard →</Link>
+        </div>
 
         <div className="sa-center">
           <span className="sa-avatar">
@@ -157,6 +169,9 @@ export default function ProfilePage() {
             <div style={{ width: `${percent}%` }} />
           </div>
           <p className="sa-small">{percent}% of your profile is complete</p>
+          <Link href="/dashboard" className="pf-cta">
+            Continue to Dashboard <ArrowRight size={18} aria-hidden="true" />
+          </Link>
         </div>
 
         {editing ? (

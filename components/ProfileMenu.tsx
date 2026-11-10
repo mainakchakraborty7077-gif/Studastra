@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Logo from "@/components/Logo";
 
 type ProfileData = {
   email: string;
@@ -36,6 +36,7 @@ const css = `
 @media(prefers-reduced-motion:reduce){.pm-pop{animation:none}.pm-caret{transition:none}}
 .pm-head{position:relative;padding:26px 20px 18px;text-align:center;background:radial-gradient(ellipse at 50% 0%,#33298a 0%,#1a1d57 70%)}
 .pm-orbit{position:absolute;left:50%;top:-40px;transform:translateX(-50%);pointer-events:none}
+.pm-brand{position:absolute;left:14px;top:12px;z-index:1}
 .pm-avatar{position:relative;width:68px;height:68px;margin:0 auto;border-radius:50%;border:2px solid #f2c46d;background:#0c1033;color:#f2c46d;font-family:Georgia,serif;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 5px rgba(242,196,109,.12)}
 .pm-name{position:relative;margin:12px 0 0;font-family:Georgia,"Times New Roman",serif;font-size:21px;font-weight:600}
 .pm-sub{position:relative;margin:4px 0 0;font-size:13px;color:rgba(244,239,228,.7)}
@@ -58,7 +59,6 @@ const css = `
 `;
 
 export default function ProfileMenu({ className = "pm-fixed" }: { className?: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -73,7 +73,7 @@ export default function ProfileMenu({ className = "pm-fixed" }: { className?: st
     }
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, grade, target_exam, gender, blood_group, date_of_birth, phone")
+      .select("full_name, grade, target_exam, gender, blood_group, date_of_birth, phone, mobile_number")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -86,7 +86,7 @@ export default function ProfileMenu({ className = "pm-fixed" }: { className?: st
       gender: data?.gender ?? null,
       blood_group: data?.blood_group ?? null,
       date_of_birth: data?.date_of_birth ?? null,
-      phone: data?.phone ?? null,
+      phone: data?.phone ?? data?.mobile_number ?? null,
     });
   }, []);
 
@@ -110,16 +110,14 @@ export default function ProfileMenu({ className = "pm-fixed" }: { className?: st
     };
   }, []);
 
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth");
-    router.refresh();
+  function handleSignOut() {
+    // Server route clears the session cookie and returns to the login page.
+    window.location.href = "/logout";
   }
 
   if (!profile) return null;
 
-  const displayName = profile.full_name?.trim() || profile.email;
+  const displayName = profile.full_name?.trim() || profile.email || profile.phone || "Explorer";
   const initial = displayName.charAt(0).toUpperCase();
 
   const cells: { k: string; v: string | null; full?: boolean }[] = [
@@ -161,6 +159,7 @@ export default function ProfileMenu({ className = "pm-fixed" }: { className?: st
               <circle cx="150" cy="10" r="3" fill="#f2c46d" />
               <circle cx="50" cy="150" r="2.5" fill="#c9c2ff" />
             </svg>
+            <div className="pm-brand"><Logo size={26} textSize={13} href="/dashboard" /></div>
             <div className="pm-avatar">{initial}</div>
             <p className="pm-name">{displayName}</p>
             <p className="pm-sub">{profile.grade ? `Student • ${profile.grade}` : "StudAstra student"}</p>

@@ -15,6 +15,29 @@ This is a deployable starting point for a cosmic-style study app. It uses the ex
 - Supabase Row Level Security (RLS) policies
 - No hard-coded admin credentials
 
+## Auth overhaul (mobile login, roles, parents, MFA)
+
+The app now uses **mobile-number sign-in** with four roles: `student`, `parent`, `teacher`, `admin`.
+There is **no public sign-up** — admins create every account.
+
+| URL | Who | Notes |
+| --- | --- | --- |
+| `/login` | Students & parents | OTP or password, forgot password via OTP. Old `/auth*` URLs redirect here. |
+| `/admin/login` | Admins & teachers | Mobile/email + password, then **mandatory TOTP** (authenticator app). |
+| `/dashboard`, `/profile` | Students | Unchanged student area. |
+| `/parent/dashboard`, `/parent/performance`, `/parent/attendance`, `/parent/profile` | Parents | Only linked students. |
+| `/admin/students`, `/admin/parents`, `/admin/teachers`, `/admin/attendance`, `/admin/audit` | Staff | Teachers see only sections they have permission for. |
+| `/register`, `/support`, `/privacy`, `/terms` | Everyone | Info pages. |
+
+### Setup
+1. Run `supabase/auth_rbac.sql` in the SQL Editor (after `schema.sql`, `tests.sql`, `learning_content.sql`). It is idempotent and **alters** the existing `profiles` table.
+2. Supabase → **Authentication → Sign In / Providers → Phone**: enable, and configure an SMS provider (Twilio, MessageBird, Vonage or Textlocal; for MSG91 use a *Send SMS* auth hook). Keep "Enable phone confirmations" on.
+3. Supabase → **Authentication → Multi-Factor**: enable **TOTP** (App Authenticator).
+4. Add env vars (see `.env.example`), including the server-only `SUPABASE_SERVICE_ROLE_KEY`.
+5. Bootstrap the first admin with the snippet at the bottom of `auth_rbac.sql`, then sign in at `/admin/login` and scan the QR code.
+
+Rate limits in `lib/auth/rate-limit.ts` are per server instance (in memory); Supabase's own auth rate limits still apply on top.
+
 ## 1. Create Supabase project
 1. Create a project in Supabase.
 2. In **SQL Editor**, run the full script `supabase/schema.sql`. To enable practice tests on an existing project, run `supabase/tests.sql` after it. If practice tests are already installed, rerun the updated `supabase/tests.sql` to add configurable timers, private question images, multiple-correct and match-the-columns question support; it is safe to rerun.
@@ -41,23 +64,14 @@ npm run dev
 Open `http://localhost:3000`.
 
 ## 3. Create your admin account securely
-1. First register a normal account through `/auth`.
-2. Confirm the email if Supabase email confirmation is enabled.
-3. In Supabase SQL Editor, find the user's UUID under **Authentication → Users**.
-4. Run this query, replacing the UUID with the exact ID of your own account:
-   ```sql
-   update public.profiles
-   set role = 'admin'
-   where id = 'PASTE-YOUR-USER-UUID-HERE';
-   ```
-5. Sign out and sign in at `/admin/login`.
+Public sign-up is disabled. Create the first admin in Supabase → Authentication → Users → *Add user* (phone + password, auto-confirm), then run the **bootstrap snippet** at the bottom of `supabase/auth_rbac.sql`. Sign in at `/admin/login` and enrol an authenticator app (TOTP is mandatory). Create every other account from `/admin/students`, `/admin/parents` and `/admin/teachers`.
 
-Never use a shared demo password or trust a role supplied by the browser. The database trigger always creates new accounts as `student`; an owner must grant admin role through the trusted Supabase dashboard/SQL editor.
+Never use a shared demo password or trust a role supplied by the browser. New auth users always start as `student`; roles are set only by server routes using the service role key or by the owner in SQL.
 
 ## 4. Deploy to Vercel
 1. Push this folder to a private Git repository.
 2. In Vercel, import the repository and choose the Next.js framework preset.
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` under Project Settings → Environment Variables for Preview and Production.
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` (server-only) under Project Settings → Environment Variables for Preview and Production.
 4. Deploy, then add the final Vercel URL to Supabase Auth's allowed redirect URLs.
 5. Test sign-up, email confirmation, sign-in, creating/deleting a note, test creation/taking, and admin/non-admin access.
 

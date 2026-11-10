@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { DashboardBar } from "@/components/DashboardBrand";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,7 +28,7 @@ export default function FocusPage() {
     try {
       const s = createClient();
       const { data: { user } } = await s.auth.getUser();
-      if (!user) { router.replace("/auth"); return; }
+      if (!user) { router.replace("/login?reason=signin"); return; }
       const { data, error } = await s.from("study_sessions").insert({ user_id: user.id, subject: subj, minutes }).select("id,subject,minutes,created_at").single();
       if (error) throw error;
       setSessions((old) => [data as Session, ...old]);
@@ -42,7 +42,7 @@ export default function FocusPage() {
     async function load() {
       const s = createClient();
       const { data: { user } } = await s.auth.getUser();
-      if (!user) { router.replace("/auth"); return; }
+      if (!user) { router.replace("/login?reason=signin"); return; }
       const { data } = await s.from("study_sessions").select("id,subject,minutes,created_at").order("created_at", { ascending: false }).limit(60);
       setSessions((data || []) as Session[]);
     }
@@ -89,7 +89,7 @@ export default function FocusPage() {
     <div className="fp-shell">
       <style>{css}</style>
       <div className="fp-wrap">
-        <Link href="/dashboard" className="fp-back">← Back to dashboard</Link>
+        <DashboardBar />
         <h1 className="fp-title">Focus timer</h1>
         <p className="fp-sub">Pick a subject, start the clock, and every finished session is saved to your account.</p>
 

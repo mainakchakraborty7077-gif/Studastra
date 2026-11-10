@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { DashboardBar } from "@/components/DashboardBrand";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -34,7 +34,7 @@ export default function StudentNotesPage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        router.replace("/auth");
+        router.replace("/login?reason=signin");
         return;
       }
 
@@ -90,9 +90,7 @@ export default function StudentNotesPage() {
     <main className="nl-page">
       <style>{styles}</style>
       <div className="nl-wrap">
-        <Link href="/dashboard" className="nl-back">
-          ← Back to dashboard
-        </Link>
+        <DashboardBar />
         <header>
           <p className="nl-kicker">STUDY LIBRARY</p>
           <h1>Class notes</h1>
