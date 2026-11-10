@@ -9,7 +9,10 @@ import {
   type LearningNote,
 } from "@/lib/learning-content";
 
-type NoteWithUrl = LearningNote & { signedUrl: string | null };
+type NoteWithUrl = LearningNote & {
+  signedUrl: string | null;
+  downloadUrl?: string | null;
+};
 const NOTE_SELECT =
   "id,title,summary,content,subject,class_level,attachment_path,attachment_type,published,created_at";
 
@@ -18,6 +21,7 @@ export default function StudentNotesPage() {
   const [notes, setNotes] = useState<NoteWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [unlocked, setUnlocked] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +53,16 @@ export default function StudentNotesPage() {
             .from(LEARNING_CONTENT_BUCKET)
             .createSignedUrl(note.attachment_path, 60 * 60);
           if (signedError) throw signedError;
-          return { ...note, signedUrl: signed.signedUrl };
+          let downloadUrl: string | null = null;
+          if (note.attachment_type === "application/pdf") {
+            const { data: dl } = await supabase.storage
+              .from(LEARNING_CONTENT_BUCKET)
+              .createSignedUrl(note.attachment_path, 60 * 60, {
+                download: `${note.title}.pdf`,
+              });
+            downloadUrl = dl?.signedUrl ?? null;
+          }
+          return { ...note, signedUrl: signed.signedUrl, downloadUrl };
         }),
       );
 
@@ -108,11 +121,36 @@ export default function StudentNotesPage() {
                   Your browser does not support HTML video.
                 </video>
               )}
-              {note.signedUrl && note.attachment_type === "application/pdf" && (
-                <a href={note.signedUrl} target="_blank" rel="noreferrer">
-                  Open PDF notes
-                </a>
-              )}
+              {note.signedUrl && note.attachment_type === "application/pdf" &&
+                (unlocked[note.id] ? (
+                  <div className="nl-actions">
+                    <a
+                      className="nl-btn"
+                      href={note.signedUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open
+                    </a>
+                    <a
+                      className="nl-btn nl-btn-alt"
+                      href={note.downloadUrl ?? note.signedUrl}
+                      download
+                    >
+                      Download
+                    </a>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="nl-btn nl-get"
+                    onClick={() =>
+                      setUnlocked((prev) => ({ ...prev, [note.id]: true }))
+                    }
+                  >
+                    Get this notes for free
+                  </button>
+                ))}
             </article>
           ))}
         </div>
@@ -138,5 +176,11 @@ const styles = `
 .nl-card img,.nl-card video{display:block;max-width:100%;max-height:600px;border-radius:12px;margin-top:14px}
 .nl-card video{width:100%;background:#05080b}
 .nl-card a{display:inline-block;margin-top:12px;color:#7fe7f2}
+.nl-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.nl-card a.nl-btn,.nl-btn{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:999px;border:1px solid #7fe7f2;background:#7fe7f2;color:#05222a;font-weight:600;font-size:15px;text-decoration:none;cursor:pointer}
+.nl-actions .nl-btn{margin-top:0}
+.nl-card a.nl-btn-alt{background:transparent;color:#7fe7f2}
+.nl-get{background:linear-gradient(90deg,#f5c542,#7fe7f2);border:none}
+.nl-btn:hover{filter:brightness(1.1)}
 .nl-message{padding:12px;border:1px solid rgba(255,255,255,.14);border-radius:12px}
 `;
