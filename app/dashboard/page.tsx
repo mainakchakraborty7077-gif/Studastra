@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, Video, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
+import TwinkleStars from "@/components/TwinkleStars";
 
 type StudyItem = { id: string; title: string; body: string; kind: "goal" | "note"; created_at: string };
 
@@ -105,6 +106,7 @@ export default function Dashboard() {
   return (
     <div className="ds-shell">
       <style>{css}</style>
+      <TwinkleStars />
       <aside className="ds-side">
         <Link href="/" className="ds-logo"><span className="ds-mark">✦</span><b>StudAstra</b></Link>
         <nav className="ds-nav">
@@ -189,8 +191,8 @@ export default function Dashboard() {
 }
 
 const css = `
-.ds-shell{display:flex;min-height:100vh;background:radial-gradient(ellipse at 70% 0%,#0f2530 0%,#0a1016 55%);color:#e8f1f5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.ds-side{width:248px;flex-shrink:0;position:sticky;top:0;height:100vh;box-sizing:border-box;padding:16px 12px;display:flex;flex-direction:column;gap:18px;background:#0c141b;border-right:1px solid rgba(255,255,255,.07)}
+.ds-shell{position:relative;display:flex;min-height:100vh;background:radial-gradient(ellipse at 70% 0%,#0f2530 0%,#0a1016 55%);color:#e8f1f5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.ds-side{width:248px;flex-shrink:0;position:sticky;top:0;z-index:1;height:100vh;box-sizing:border-box;padding:16px 12px;display:flex;flex-direction:column;gap:18px;background:#0c141b;border-right:1px solid rgba(255,255,255,.07)}
 .ds-logo{display:flex;align-items:center;gap:10px;padding:6px 8px;color:#7fe7f2;text-decoration:none;font-size:20px}
 .ds-mark{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#123846,#0a1a24);border:1px solid rgba(34,211,238,.4);color:#22d3ee}
 .ds-nav{display:flex;flex-direction:column;gap:4px;flex:1;overflow:auto}
@@ -201,7 +203,7 @@ const css = `
 .ds-link em{margin-left:auto;font-style:normal;font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(255,255,255,.08)}
 .ds-tag{padding:14px;border-radius:16px;background:#111b24;border:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(232,241,245,.65);display:flex;flex-direction:column;gap:6px}
 .ds-tag b{font-size:15px;color:#fff}
-.ds-main{flex:1;min-width:0}
+.ds-main{flex:1;min-width:0;position:relative;z-index:1}
 .ds-top{display:flex;align-items:center;gap:14px;padding:12px 28px;border-bottom:1px solid rgba(255,255,255,.06)}
 .ds-search{flex:1;max-width:420px;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;background:#0f1922;border:1px solid rgba(255,255,255,.1);color:rgba(232,241,245,.6)}
 .ds-search input{flex:1;background:none;border:0;outline:0;color:#e8f1f5;font-size:14px;font-family:inherit;min-width:0}
