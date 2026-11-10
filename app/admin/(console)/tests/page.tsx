@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowLeftRight, ImagePlus, Plus, Trash2 } from "lucide-react";
@@ -28,7 +29,7 @@ export default function AdminTestsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.replace("/admin/login"); return; }
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== "admin") { router.replace("/admin/login"); return; }
+    if (profile?.role !== "admin" && profile?.role !== "teacher") { router.replace("/admin/login"); return; }
     setAuthorized(true);
     const { data, error } = await supabase.from("tests").select("id,title,description,published,created_at,duration_minutes").order("created_at", { ascending: false });
     if (error) throw error;
@@ -163,7 +164,7 @@ export default function AdminTestsPage() {
   }
 
   return <main className="wrap" style={{ paddingTop: 24, paddingBottom: 60 }}>
-    <header className="nav" style={{ height: 64 }}><Link className="brand" href="/admin"><span className="logo">✦</span> StudAstra Admin</Link><Link className="btn small" href="/admin"><ArrowLeft size={14}/> Overview</Link></header>
+    <header className="nav" style={{ height: 64 }}><Logo size={38} caption="Admin" href="/admin" /><Link className="btn small" href="/admin"><ArrowLeft size={14}/> Overview</Link></header>
     <section><span className="pill">TEST BUILDER</span><h1 style={{ fontSize: 38, marginBottom: 4 }}>Create a practice test</h1><p className="muted">Add multiple-choice questions and publish them for students.</p>
       {message && <p className="muted" role="status">{message}</p>}
       {authorized && <div className="demo" style={{ alignItems: "start" }}>

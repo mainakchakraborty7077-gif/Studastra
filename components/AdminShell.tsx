@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Logo from "@/components/Logo";
 
 // Wraps every admin page: checks the admin role, then shows the page inside a shared layout.
 // The real protection is in the database (row level security); this check is for the interface.
@@ -17,9 +18,10 @@ export default function AdminShell({
     async function check() {
       const s = createClient();
       const { data: { user } } = await s.auth.getUser();
-      if (!user) { router.replace("/auth"); return; }
-      const { data } = await s.from("profiles").select("role").eq("id", user.id).maybeSingle();
-      setStatus(data?.role === "admin" ? "ok" : "denied");
+      if (!user) { router.replace("/admin/login?reason=signin"); return; }
+      const { data } = await s.from("profiles").select("role, account_status").eq("id", user.id).maybeSingle();
+      // Teachers reach a page only when middleware has confirmed their permission for it.
+      setStatus((data?.role === "admin" || data?.role === "teacher") && data?.account_status === "active" ? "ok" : "denied");
     }
     void check();
   }, [router]);
@@ -28,10 +30,14 @@ export default function AdminShell({
     <div className="ad-shell">
       <style>{css}</style>
       <div className="ad-wrap">
+        <div className="ad-top">
+          <Logo size={38} caption="Admin" href="/admin" />
+          <a href="/logout" className="ad-ghost">Sign out</a>
+        </div>
         <Link href={back} className="ad-back">{backLabel}</Link>
         {status === "checking" && <p className="ad-sub">Checking access...</p>}
         {status === "denied" && (
-          <div className="ad-card"><h1 className="ad-title">Admins only</h1><p className="ad-sub">Your account does not have admin access.</p><Link href="/dashboard" className="ad-btn">Go to dashboard</Link></div>
+          <div className="ad-card"><h1 className="ad-title">Admins only</h1><p className="ad-sub">Your account does not have access to this page.</p><Link href="/dashboard" className="ad-btn">Go to dashboard</Link></div>
         )}
         {status === "ok" && (<>
           <h1 className="ad-title">{title}</h1>
@@ -46,6 +52,8 @@ export default function AdminShell({
 const css = `
 .ad-shell{min-height:100vh;padding:28px 18px 70px;background:radial-gradient(ellipse at 70% 0%,#0f2530 0%,#0a1016 55%);color:#e8f1f5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .ad-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.ad-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.ad-top .ad-ghost{text-decoration:none}
 .ad-back{color:rgba(232,241,245,.65);text-decoration:none;font-size:14px}
 .ad-title{margin:6px 0 0;font-size:32px}
 .ad-sub{margin:0;color:rgba(232,241,245,.65);font-size:15px;line-height:1.5}

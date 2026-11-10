@@ -59,7 +59,7 @@ export default function ProgressPage() {
           await Promise.all([
             supabase
               .from("profiles")
-              .select("id,full_name,email,grade,target_exam"),
+              .select("id,full_name,email,grade,target_exam").eq("role", "student"),
             supabase.from("chapter_progress").select("user_id,studied"),
             supabase.from("study_sessions").select("user_id,minutes,created_at"),
           ]);
