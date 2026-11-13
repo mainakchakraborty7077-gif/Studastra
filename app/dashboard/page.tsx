@@ -18,7 +18,7 @@ const NAV = [
   { en: "DPP", icon: ListChecks },
   { en: "Question Bank", icon: Library },
   { en: "Notes", icon: StickyNote, href: "#space" },
-  { en: "AI Tutor", icon: Sparkles },
+  { en: "Ask AI", icon: Sparkles, href: "/dashboard/ask-ai" },
   { en: "Quiz", icon: Target },
   { en: "Tests", icon: ClipboardCheck, href: "/dashboard/tests" },
   { en: "Focus Timer", icon: Timer, href: "/dashboard/focus" },
