@@ -10,7 +10,7 @@ type TestInfo = { id: string; title: string; description: string; duration_minut
 type QuestionType = "single_correct" | "multiple_correct" | "match_columns";
 type QuestionAnswer = number | number[] | Record<string, number>;
 type Question = { id: string; prompt: string; question_type: QuestionType; options: string[]; match_left: string[] | null; position: number; image_path: string | null; imageUrl?: string };
-type Result = { score: number; total: number };
+type Result = { score: number; total: number; attempted: number; timeTaken: number | null };
 type SavedState = { answers: Record<string, QuestionAnswer>; marked: string[]; visited?: string[]; current: number; expiresAt: number };
 
 const bucket = "test-question-images";
@@ -81,22 +81,31 @@ export default function TakeTestPage() {
     setMessage(automatic ? "Time is up. Submitting your exam…" : "Submitting your exam…");
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.rpc("submit_test", {
+      const payload = {
         p_test_id: testId,
         p_question_ids: questions.map((question) => question.id),
         p_answers: questions.map((question) => answers[question.id] ?? null),
-      });
+      };
+      const durationSeconds = (test?.duration_minutes || 0) * 60;
+      const startedAt = expiresAt !== null && durationSeconds ? expiresAt - durationSeconds * 1000 : null;
+      const timeTaken = startedAt !== null ? Math.max(0, Math.min(durationSeconds, Math.round((Date.now() - startedAt) / 1000))) : null;
+      let { data, error } = await supabase.rpc("submit_test", { ...payload, p_time_taken_seconds: timeTaken });
+      // Older databases only have the 3-argument submit_test; retry without the time.
+      if (error && (error.code === "PGRST202" || /could not find the function/i.test(error.message))) {
+        ({ data, error } = await supabase.rpc("submit_test", payload));
+      }
       if (error) throw error;
       const score = Array.isArray(data) ? data[0] : data;
       if (!score || typeof score.score !== "number" || typeof score.total !== "number") throw new Error("The score could not be read. Please try again.");
       for (const key of Object.keys(sessionStorage)) if (key.startsWith("studastra-exam:") && key.endsWith(`:${testId}`)) sessionStorage.removeItem(key);
-      setResult({ score: score.score, total: score.total });
+      const answeredNow = questions.filter(hasAnswer).length;
+      setResult({ score: score.score, total: score.total, attempted: typeof score.attempted === "number" ? score.attempted : answeredNow, timeTaken });
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not submit this exam.");
       submissionLock.current = false;
     } finally { setBusy(false); }
-  }, [answers, questions, testId]);
+  }, [answers, questions, testId, test, expiresAt]);
   submitRef.current = submitTest;
 
   useEffect(() => {
@@ -185,7 +194,15 @@ export default function TakeTestPage() {
 
   return <main className="exam-page">
     <header className="exam-topbar"><Link className="brand" href="/dashboard"><span className="logo">✦</span> StudAstra <span className="exam-label">JEE CBT PRACTICE</span></Link><div className="exam-title">{test?.title || "Practice exam"}</div><div className={`exam-clock ${secondsLeft !== null && secondsLeft < 300 ? "exam-clock-low" : ""}`} aria-live="polite"><Clock3 size={17}/><span>Time Left&nbsp; {clock}</span></div><div className="exam-toplinks"><span><BookOpen size={14}/> Question Paper</span><span><Info size={14}/> Instructions</span></div></header>
-    {result ? <section className="exam-result"><span className="pill">EXAM COMPLETE</span><h1>Your score: {result.score} / {result.total}</h1><p className="muted">Your result is saved to your account.</p><Link className="btn primary" href="/dashboard/tests">Back to practice tests</Link></section> : <div className="exam-layout">
+    {result ? <section className="exam-result"><span className="pill">EXAM COMPLETE</span><h1>Your score: {result.score} / {result.total}</h1>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10, margin: "18px 0", textAlign: "center" }}>
+        <div><b style={{ fontSize: 22, color: "#249a72" }}>{result.score}</b><br/><span className="muted">Correct</span></div>
+        <div><b style={{ fontSize: 22, color: "#c0392b" }}>{Math.max(0, result.attempted - result.score)}</b><br/><span className="muted">Wrong</span></div>
+        <div><b style={{ fontSize: 22 }}>{Math.max(0, result.total - result.attempted)}</b><br/><span className="muted">Unattempted</span></div>
+        <div><b style={{ fontSize: 22 }}>{result.attempted ? `${Math.round((result.score / result.attempted) * 1000) / 10}%` : "—"}</b><br/><span className="muted">Accuracy</span></div>
+        {result.timeTaken !== null && <div><b style={{ fontSize: 22 }}>{Math.floor(result.timeTaken / 60)}m {String(result.timeTaken % 60).padStart(2, "0")}s</b><br/><span className="muted">Time taken</span></div>}
+      </div>
+      <p className="muted">This attempt is saved to your report card.</p><div className="row" style={{ justifyContent: "center", gap: 10 }}><Link className="btn primary" href="/dashboard/tests#report-card">View report card &amp; leaderboard</Link><Link className="btn" style={{ color: "#323b52", borderColor: "#d8ddea", background: "white" }} href="/dashboard/tests">Back to practice tests</Link></div></section> : <div className="exam-layout">
       <section className="exam-main">
         <div className="exam-subjectbar"><span className="exam-subject">Practice Test <Info size={13}/></span><span className="exam-subject-help">{test?.title}</span></div>
         <div className="exam-sectionbar"><span>Q. No: {questions.length ? current + 1 : "—"} &nbsp; · &nbsp; Test size: {questions.length}</span><span>Q. Type : <b>{question?.question_type === "multiple_correct" ? "MCQ Multiple" : question?.question_type === "match_columns" ? "Match Columns" : "MCQ Single"}</b></span></div>
