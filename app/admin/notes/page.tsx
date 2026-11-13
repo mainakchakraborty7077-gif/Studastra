@@ -9,6 +9,12 @@ import {
   type ContentSubject,
   type LearningNote,
 } from "@/lib/learning-content";
+import {
+  placeNote,
+  syllabusChapters,
+  withLibraryTag,
+  type LibraryLanguage,
+} from "@/lib/learning-library";
 
 const SUBJECTS: ContentSubject[] = [
   "Physics",
@@ -29,10 +35,18 @@ export default function AdminNotesPage() {
   const [content, setContent] = useState("");
   const [subject, setSubject] = useState<ContentSubject>("Physics");
   const [classLevel, setClassLevel] = useState<ContentClass>("11");
+  const [chapter, setChapter] = useState("");
+  const [language, setLanguage] = useState<LibraryLanguage | "">("");
   const [file, setFile] = useState<File | null>(null);
   const [published, setPublished] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Loading notes...");
+
+  const chapters = syllabusChapters(classLevel, subject);
+
+  useEffect(() => {
+    if (chapter && !chapters.includes(chapter)) setChapter("");
+  }, [chapters, chapter]);
 
   async function loadNotes() {
     const supabase = createClient();
@@ -103,7 +117,10 @@ export default function AdminNotesPage() {
         .from("learning_notes")
         .insert({
           title: title.trim(),
-          summary: summary.trim(),
+          summary: withLibraryTag(summary.trim(), {
+            chapter: chapter || undefined,
+            language: language || undefined,
+          }),
           content: content.trim(),
           subject,
           class_level: classLevel,
@@ -220,6 +237,35 @@ export default function AdminNotesPage() {
           </select>
         </div>
         <div>
+          <label htmlFor="note-chapter">Syllabus chapter</label>
+          <select
+            id="note-chapter"
+            value={chapter}
+            onChange={(event) => setChapter(event.target.value)}
+          >
+            <option value="">Auto-detect from title</option>
+            {chapters.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="note-language">Language</label>
+          <select
+            id="note-language"
+            value={language}
+            onChange={(event) =>
+              setLanguage(event.target.value as LibraryLanguage | "")
+            }
+          >
+            <option value="">Auto-detect from title</option>
+            <option value="English">English version</option>
+            <option value="Bangla">Bangla version</option>
+          </select>
+        </div>
+        <div>
           <label htmlFor="note-summary">Short description</label>
           <input
             id="note-summary"
@@ -274,7 +320,9 @@ export default function AdminNotesPage() {
         {notes.length === 0 ? (
           <p className="ad-sub">No notes added yet.</p>
         ) : (
-          notes.map((note) => (
+          notes.map((note) => {
+            const placement = placeNote(note);
+            return (
             <article className="ad-q" key={note.id}>
               <p>
                 <strong>{note.title}</strong>
@@ -284,7 +332,10 @@ export default function AdminNotesPage() {
                 {note.attachment_type || "Text notes"} ·{" "}
                 {note.published ? "Published" : "Draft"}
               </p>
-              {note.summary && <p>{note.summary}</p>}
+              <p className="ad-meta">
+                Folder: {placement.chapter} · {placement.language}
+              </p>
+              {placement.cleanSummary && <p>{placement.cleanSummary}</p>}
               <div>
                 <button
                   type="button"
@@ -302,7 +353,8 @@ export default function AdminNotesPage() {
                 </button>
               </div>
             </article>
-          ))
+            );
+          })
         )}
       </section>
     </AdminShell>

@@ -11,6 +11,7 @@ import {
   type ContentSubject,
   type LearningVideo,
 } from "@/lib/learning-content";
+import { placeVideo, withLibraryTag, type LibraryLanguage } from "@/lib/learning-library";
 
 const SUBJECTS: ContentSubject[] = ["Physics", "Chemistry", "Mathematics", "Biology"];
 const CLASSES: ContentClass[] = ["11", "12"];
@@ -37,6 +38,7 @@ export default function AdminVideosPage() {
   const [classLevel, setClassLevel] = useState<ContentClass>("11");
   const [chapter, setChapter] = useState<string>(SYLLABUS_BY_CLASS["11"].Physics[0]);
   const [playlistOrder, setPlaylistOrder] = useState(1);
+  const [language, setLanguage] = useState<LibraryLanguage | "">("");
   const [sourceType, setSourceType] = useState<"youtube" | "file">("youtube");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -127,7 +129,7 @@ export default function AdminVideosPage() {
         .from("learning_videos")
         .insert({
           title: title.trim(),
-          description: description.trim(),
+          description: withLibraryTag(description.trim(), { language: language || undefined }),
           subject,
           class_level: classLevel,
           chapter,
@@ -231,6 +233,14 @@ export default function AdminVideosPage() {
           </select>
         </div>
         <div>
+          <label htmlFor="video-language">Language</label>
+          <select id="video-language" value={language} onChange={(event) => setLanguage(event.target.value as LibraryLanguage | "")}>
+            <option value="">Auto-detect from title</option>
+            <option value="English">English version</option>
+            <option value="Bangla">Bangla version</option>
+          </select>
+        </div>
+        <div>
           <label htmlFor="video-order">Playlist number</label>
           <input id="video-order" type="number" min={1} step={1} required value={playlistOrder} onChange={(event) => setPlaylistOrder(Math.max(1, Number(event.target.value) || 1))} />
           <small>Next suggested number for this chapter playlist.</small>
@@ -266,17 +276,20 @@ export default function AdminVideosPage() {
 
       <section className="ad-card">
         <h2>Video playlists</h2>
-        {videos.length === 0 ? <p className="ad-sub">No videos added yet.</p> : videos.map((video) => (
+        {videos.length === 0 ? <p className="ad-sub">No videos added yet.</p> : videos.map((video) => {
+          const placement = placeVideo(video);
+          return (
           <article className="ad-q" key={video.id}>
             <p><strong>{video.class_level} · {video.subject} · {video.chapter} · Video {video.playlist_order}: {video.title}</strong></p>
-            {video.description && <p className="ad-sub">{video.description}</p>}
-            <p className="ad-meta">{video.youtube_url ? "YouTube" : "Video file"} · {video.published ? "Published" : "Draft"}</p>
+            {placement.cleanDescription && <p className="ad-sub">{placement.cleanDescription}</p>}
+            <p className="ad-meta">{video.youtube_url ? "YouTube" : "Video file"} · {placement.language} · {video.published ? "Published" : "Draft"}</p>
             <div>
               <button type="button" className="ad-ghost" onClick={() => void togglePublished(video)}>{video.published ? "Unpublish" : "Publish"}</button>{" "}
               <button type="button" className="ad-ghost" onClick={() => void deleteVideo(video)}>Delete</button>
             </div>
           </article>
-        ))}
+          );
+        })}
       </section>
     </AdminShell>
   );

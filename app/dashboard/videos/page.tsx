@@ -7,23 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getYouTubeEmbedUrl,
   LEARNING_CONTENT_BUCKET,
-  type ContentClass,
-  type ContentSubject,
   type LearningVideo,
 } from "@/lib/learning-content";
+import { placeVideo } from "@/lib/learning-library";
+import LibraryBrowser, { type LibraryItem } from "@/components/LibraryBrowser";
 
-type VideoWithUrl = LearningVideo & { signedUrl: string | null };
-type SubjectFilter = ContentSubject | "all";
-type ClassFilter = ContentClass | "all";
-type Playlist = {
-  key: string;
-  classLevel: ContentClass;
-  subject: ContentSubject;
-  chapter: string;
-  videos: VideoWithUrl[];
-};
-
-const SUBJECTS: ContentSubject[] = ["Physics", "Chemistry", "Mathematics", "Biology"];
+type VideoWithUrl = LearningVideo & { signedUrl: string | null; cleanDescription?: string };
 const VIDEO_SELECT =
   "id,title,description,subject,class_level,chapter,playlist_order,youtube_url,file_path,published,created_at";
 
@@ -32,10 +21,6 @@ export default function StudentVideosPage() {
   const [videos, setVideos] = useState<VideoWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState<SubjectFilter>("all");
-  const [classFilter, setClassFilter] = useState<ClassFilter>("all");
-  const [chapterFilter, setChapterFilter] = useState("all");
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [unlockedVideos, setUnlockedVideos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -77,7 +62,6 @@ export default function StudentVideosPage() {
 
       if (cancelled) return;
       setVideos(items);
-      setActiveVideoId(items[0]?.id ?? null);
       setLoading(false);
     }
 
@@ -90,55 +74,20 @@ export default function StudentVideosPage() {
     return () => { cancelled = true; };
   }, [router]);
 
-  const filteredVideos = useMemo(
+  const libraryItems = useMemo<LibraryItem<VideoWithUrl>[]>(
     () =>
-      videos.filter(
-        (video) =>
-          (subjectFilter === "all" || video.subject === subjectFilter) &&
-          (classFilter === "all" || video.class_level === classFilter) &&
-          (chapterFilter === "all" || video.chapter === chapterFilter),
-      ),
-    [videos, subjectFilter, classFilter, chapterFilter],
+      videos.map((video) => {
+        const placement = placeVideo(video);
+        return {
+          item: { ...video, cleanDescription: placement.cleanDescription },
+          subject: video.subject,
+          classLevel: video.class_level,
+          chapter: placement.chapter,
+          language: placement.language,
+        };
+      }),
+    [videos],
   );
-
-  useEffect(() => {
-    if (!filteredVideos.some((video) => video.id === activeVideoId)) {
-      setActiveVideoId(filteredVideos[0]?.id ?? null);
-    }
-  }, [filteredVideos, activeVideoId]);
-
-  const chapters = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          videos
-            .filter(
-              (video) =>
-                (subjectFilter === "all" || video.subject === subjectFilter) &&
-                (classFilter === "all" || video.class_level === classFilter),
-            )
-            .map((video) => video.chapter),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [videos, subjectFilter, classFilter],
-  );
-
-  const playlists = useMemo(() => {
-    const groups = new Map<string, Playlist>();
-    for (const video of filteredVideos) {
-      const key = [video.class_level, video.subject, video.chapter].join("|");
-      const existing = groups.get(key);
-      if (existing) existing.videos.push(video);
-      else groups.set(key, {
-        key,
-        classLevel: video.class_level,
-        subject: video.subject,
-        chapter: video.chapter,
-        videos: [video],
-      });
-    }
-    return Array.from(groups.values());
-  }, [filteredVideos]);
 
   return (
     <main className="vl-page">
@@ -148,89 +97,87 @@ export default function StudentVideosPage() {
         <header>
           <p className="vl-kicker">STUDY LIBRARY</p>
           <h1>Educational video playlists</h1>
-          <p className="vl-sub">Browse by subject or syllabus chapter. Every chapter playlist is numbered in viewing order.</p>
+          <p className="vl-sub">Classes organised chapter-wise. Open a chapter folder, then pick the English or Bangla version. Every playlist is numbered in viewing order.</p>
         </header>
-
-        <section className="vl-filters" aria-label="Filter video playlists">
-          <label>Subject
-            <select value={subjectFilter} onChange={(event) => { setSubjectFilter(event.target.value as SubjectFilter); setChapterFilter("all"); }}>
-              <option value="all">All subjects</option>
-              {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
-            </select>
-          </label>
-          <label>Class
-            <select value={classFilter} onChange={(event) => { setClassFilter(event.target.value as ClassFilter); setChapterFilter("all"); }}>
-              <option value="all">All classes</option>
-              <option value="11">Class 11</option>
-              <option value="12">Class 12</option>
-            </select>
-          </label>
-          <label>Chapter
-            <select value={chapterFilter} onChange={(event) => setChapterFilter(event.target.value)}>
-              <option value="all">All chapters</option>
-              {chapters.map((chapter) => <option key={chapter} value={chapter}>{chapter}</option>)}
-            </select>
-          </label>
-        </section>
 
         {loading && <p role="status">Loading videos...</p>}
         {message && <p className="vl-message" role="status">{message}</p>}
-        {!loading && !message && filteredVideos.length === 0 && <section className="vl-card">No videos match these filters yet.</section>}
+        {!loading && !message && videos.length === 0 && <section className="vl-card">No videos are published yet.</section>}
 
-        <div className="vl-playlists">
-          {playlists.map((playlist) => {
-            const selected = playlist.videos.find((video) => video.id === activeVideoId) ?? null;
-            const selectedIndex = selected ? playlist.videos.findIndex((video) => video.id === selected.id) : -1;
-            const embedUrl = selected?.youtube_url ? getYouTubeEmbedUrl(selected.youtube_url) : null;
-
-            return (
-              <section className="vl-playlist" key={playlist.key}>
-                <header className="vl-playlist-head">
-                  <p className="vl-meta">CLASS {playlist.classLevel} · {playlist.subject.toUpperCase()}</p>
-                  <h2>{playlist.chapter}</h2>
-                  <p className="vl-sub">{playlist.videos.length} video{playlist.videos.length === 1 ? "" : "s"} in this chapter playlist</p>
-                </header>
-
-                {selected && (
-                  <div className="vl-player">
-                    {!unlockedVideos[selected.id] ? (
-                      <div className="vl-gate">
-                        <button type="button" className="vl-get" onClick={() => setUnlockedVideos((prev) => ({ ...prev, [selected.id]: true }))}>Get this class for free</button>
-                      </div>
-                    ) : embedUrl ? (
-                      <iframe src={embedUrl} title={selected.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
-                    ) : selected.signedUrl ? (
-                      <video controls preload="metadata" src={selected.signedUrl}>Your browser does not support HTML video.</video>
-                    ) : (
-                      <div className="vl-placeholder">Video unavailable</div>
-                    )}
-                    <p className="vl-meta">VIDEO {selected.playlist_order} OF {playlist.videos.length}</p>
-                    <h3>{selected.title}</h3>
-                    {selected.description && <p className="vl-sub">{selected.description}</p>}
-                    <div className="vl-player-actions">
-                      <button type="button" disabled={selectedIndex <= 0} onClick={() => setActiveVideoId(playlist.videos[selectedIndex - 1]?.id ?? null)}>← Previous</button>
-                      <button type="button" disabled={selectedIndex < 0 || selectedIndex >= playlist.videos.length - 1} onClick={() => setActiveVideoId(playlist.videos[selectedIndex + 1]?.id ?? null)}>Next →</button>
-                    </div>
-                  </div>
-                )}
-
-                <ol className="vl-list">
-                  {playlist.videos.map((video) => (
-                    <li key={video.id}>
-                      <button className={video.id === activeVideoId ? "vl-item is-active" : "vl-item"} type="button" aria-pressed={video.id === activeVideoId} onClick={() => setActiveVideoId(video.id)}>
-                        <span className="vl-number">{video.playlist_order}</span>
-                        <span className="vl-item-copy"><strong>{video.title}</strong>{video.description && <small>{video.description}</small>}</span>
-                        <span className="vl-play-mark">{video.id === activeVideoId ? "Playing" : "Play"}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            );
-          })}
-        </div>
+        {!loading && !message && videos.length > 0 && (
+          <LibraryBrowser
+            items={libraryItems}
+            noun="videos"
+            renderItems={(entries, folder) => (
+              <VideoPlaylist
+                key={folder.chapter + "|" + folder.language + "|" + entries.map((e) => e.item.id).join(",")}
+                videos={entries.map((entry) => entry.item).sort((a, b) => (a.playlist_order ?? 0) - (b.playlist_order ?? 0) || a.created_at.localeCompare(b.created_at))}
+                unlocked={unlockedVideos}
+                onUnlock={(id) => setUnlockedVideos((prev) => ({ ...prev, [id]: true }))}
+              />
+            )}
+          />
+        )}
       </div>
     </main>
+  );
+}
+
+function VideoPlaylist({
+  videos,
+  unlocked,
+  onUnlock,
+}: {
+  videos: VideoWithUrl[];
+  unlocked: Record<string, boolean>;
+  onUnlock: (id: string) => void;
+}) {
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(videos[0]?.id ?? null);
+  const selected = videos.find((video) => video.id === activeVideoId) ?? videos[0] ?? null;
+  const selectedIndex = selected ? videos.findIndex((video) => video.id === selected.id) : -1;
+  const embedUrl = selected?.youtube_url ? getYouTubeEmbedUrl(selected.youtube_url) : null;
+
+  return (
+    <section className="vl-playlist">
+      <header className="vl-playlist-head">
+        <p className="vl-sub">{videos.length} video{videos.length === 1 ? "" : "s"} in this playlist</p>
+      </header>
+
+      {selected && (
+        <div className="vl-player">
+          {!unlocked[selected.id] ? (
+            <div className="vl-gate">
+              <button type="button" className="vl-get" onClick={() => onUnlock(selected.id)}>Get this class for free</button>
+            </div>
+          ) : embedUrl ? (
+            <iframe src={embedUrl} title={selected.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+          ) : selected.signedUrl ? (
+            <video controls preload="metadata" src={selected.signedUrl}>Your browser does not support HTML video.</video>
+          ) : (
+            <div className="vl-placeholder">Video unavailable</div>
+          )}
+          <p className="vl-meta">VIDEO {selectedIndex + 1} OF {videos.length}</p>
+          <h3>{selected.title}</h3>
+          {selected.cleanDescription && <p className="vl-sub">{selected.cleanDescription}</p>}
+          <div className="vl-player-actions">
+            <button type="button" disabled={selectedIndex <= 0} onClick={() => setActiveVideoId(videos[selectedIndex - 1]?.id ?? null)}>← Previous</button>
+            <button type="button" disabled={selectedIndex < 0 || selectedIndex >= videos.length - 1} onClick={() => setActiveVideoId(videos[selectedIndex + 1]?.id ?? null)}>Next →</button>
+          </div>
+        </div>
+      )}
+
+      <ol className="vl-list">
+        {videos.map((video, index) => (
+          <li key={video.id}>
+            <button className={video.id === selected?.id ? "vl-item is-active" : "vl-item"} type="button" aria-pressed={video.id === selected?.id} onClick={() => setActiveVideoId(video.id)}>
+              <span className="vl-number">{index + 1}</span>
+              <span className="vl-item-copy"><strong>{video.title}</strong>{video.cleanDescription && <small>{video.cleanDescription}</small>}</span>
+              <span className="vl-play-mark">{video.id === selected?.id ? "Playing" : "Play"}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -270,6 +217,7 @@ const styles = `
 .vl-item-copy small{color:rgba(232,241,245,.62);line-height:1.4}
 .vl-play-mark{font-size:12px;color:#7fe7f2}
 .vl-meta{font-size:12px;color:#7fe7f2}
+.vl-card{padding:20px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(18,28,37,.88)}
 .vl-message{padding:12px;border:1px solid rgba(255,255,255,.14);border-radius:12px}
 .vl-placeholder{aspect-ratio:16/9;display:grid;place-items:center;background:#05080b;border-radius:12px;color:rgba(232,241,245,.6)}
 `;
