@@ -103,7 +103,7 @@ export default function AuthPage() {
         </Link>
 
         <div className="sa-center">
-          <p className="sa-brand">✦ StudAstra</p>
+          <p className="sa-brand"><img src="/logo.png" alt="" style={{width:30,height:30,borderRadius:"50%",verticalAlign:"middle",marginRight:8}} />StudAstra</p>
           <h1 className="sa-title">
             {isSignUp ? "Begin your journey" : "Welcome back, stargazer"}
           </h1>

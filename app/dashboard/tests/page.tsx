@@ -172,7 +172,7 @@ export default function PracticeTestsPage() {
 
   return <main className="wrap" style={{ paddingTop: 24, paddingBottom: 60 }}>
     <style>{styles}</style>
-    <header className="nav" style={{ height: 64 }}><Link className="brand" href="/dashboard"><span className="logo">✦</span> StudAstra</Link><Link className="btn small" href="/dashboard"><ArrowLeft size={14}/> Dashboard</Link></header>
+    <header className="nav" style={{ height: 64 }}><Link className="brand" href="/dashboard"><img className="logo logo-img" src="/logo.png" alt="StudAstra" /> StudAstra</Link><Link className="btn small" href="/dashboard"><ArrowLeft size={14}/> Dashboard</Link></header>
     <section><span className="pill"><ClipboardList size={14}/> PRACTICE TESTS</span><h1 style={{ fontSize: 38, marginBottom: 4 }}>Test your understanding</h1><p className="muted">Choose a practice test and get your score as soon as you submit. Every attempt is saved to your report card below.</p>{message && <p className="muted" role="status">{message}</p>}
       {!message && tests.length === 0 && <div className="panel empty">No tests are published yet. Check back soon.</div>}
       <div className="features">{tests.map((test) => {

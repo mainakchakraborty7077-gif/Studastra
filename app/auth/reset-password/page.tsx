@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
   return (
     <main className="wrap" style={{ paddingTop: 38, paddingBottom: 70 }}>
       <Link className="brand" href="/">
-        <span className="logo">✦</span> StudAstra
+        <img className="logo logo-img" src="/logo.png" alt="StudAstra" /> StudAstra
       </Link>
 
       <section>

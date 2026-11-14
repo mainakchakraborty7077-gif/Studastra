@@ -108,7 +108,7 @@ export default function Dashboard() {
       <style>{css}</style>
       <TwinkleStars />
       <aside className="ds-side">
-        <Link href="/" className="ds-logo"><span className="ds-mark">✦</span><b>StudAstra</b></Link>
+        <Link href="/" className="ds-logo"><img className="ds-mark" src="/logo.png" alt="StudAstra" /><b>StudAstra</b></Link>
         <nav className="ds-nav">
           {NAV.map(n => {
             const Icon = n.icon; const label = n.en;
@@ -194,7 +194,7 @@ const css = `
 .ds-shell{position:relative;display:flex;min-height:100vh;background:radial-gradient(ellipse at 70% 0%,#0f2530 0%,#0a1016 55%);color:#e8f1f5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .ds-side{width:248px;flex-shrink:0;position:sticky;top:0;z-index:1;height:100vh;box-sizing:border-box;padding:16px 12px;display:flex;flex-direction:column;gap:18px;background:#0c141b;border-right:1px solid rgba(255,255,255,.07)}
 .ds-logo{display:flex;align-items:center;gap:10px;padding:6px 8px;color:#7fe7f2;text-decoration:none;font-size:20px}
-.ds-mark{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#123846,#0a1a24);border:1px solid rgba(34,211,238,.4);color:#22d3ee}
+.ds-mark{width:42px;height:42px;border-radius:50%;object-fit:cover;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#123846,#0a1a24);border:1px solid rgba(34,211,238,.4);color:#22d3ee}
 .ds-nav{display:flex;flex-direction:column;gap:4px;flex:1;overflow:auto}
 .ds-link{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(232,241,245,.72);font-size:15px;text-decoration:none;border:1px solid transparent}
 .ds-link:hover{color:#fff;background:rgba(255,255,255,.05)}
