@@ -35,21 +35,23 @@ export default function PyqZonePage() {
   useEffect(() => {
     let active = true;
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/auth"); return; }
-      const indexResponse = await fetch("/pyq-data/index.json");
-      if (!indexResponse.ok) throw new Error("The Chemistry PYQ files are not available yet.");
-      const index = await indexResponse.json() as { files: string[] };
-      const responses = await Promise.all(index.files.map(file => fetch(`/pyq-data/${file}`).then(response => {
-        if (!response.ok) throw new Error(`Could not load ${file}.`);
-        return response.json() as Promise<Question[]>;
-      })));
-      if (!active) return;
-      setItems(responses.flat().sort((a, b) => b.year - a.year || a.question_number - b.question_number));
-      setStatus("");
-    } catch (error) {
-      if (active) setStatus(error instanceof Error ? error.message : "Unable to load the question archive.");
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.replace("/auth"); return; }
+        const indexResponse = await fetch("/pyq-data/index.json");
+        if (!indexResponse.ok) throw new Error("The Chemistry PYQ files are not available yet.");
+        const index = await indexResponse.json() as { files: string[] };
+        const responses = await Promise.all(index.files.map(file => fetch(`/pyq-data/${file}`).then(response => {
+          if (!response.ok) throw new Error(`Could not load ${file}.`);
+          return response.json() as Promise<Question[]>;
+        })));
+        if (!active) return;
+        setItems(responses.flat().sort((a, b) => b.year - a.year || a.question_number - b.question_number));
+        setStatus("");
+      } catch (error) {
+        if (active) setStatus(error instanceof Error ? error.message : "Unable to load the question archive.");
+      }
     }
     void load();
     return () => { active = false; };
