@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, Video, TrendingUp } from "lucide-react";
+import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard, Library, ListChecks, Plus, Search, Settings, ShieldCheck, Sparkles, StickyNote, Target, Timer, Trash2, Video, TrendingUp, Orbit } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 import TwinkleStars from "@/components/TwinkleStars";
@@ -18,6 +18,7 @@ const NAV = [
   { en: "Class Notes", icon: FileText, href: "/dashboard/notes" },
   { en: "DPP", icon: ListChecks },
   { en: "Question Bank", icon: Library },
+  { en: "PYQ Zone", icon: Orbit, href: "/dashboard/pyq-zone" },
   { en: "Notes", icon: StickyNote, href: "#space" },
   { en: "Ask AI", icon: Sparkles, href: "/dashboard/ask-ai" },
   { en: "Quiz", icon: Target },
@@ -135,6 +136,7 @@ export default function Dashboard() {
             <Link href="/admin/login" className="ds-card ds-shortcut"><ShieldCheck size={20} /><span><b>Admin login</b><small>Administrator sign in</small></span><ArrowRight size={17} /></Link>
             <Link href="/dashboard/videos" className="ds-card ds-shortcut"><Video size={20} /><span><b>Video library</b><small>Educational videos</small></span><ArrowRight size={17} /></Link>
             <Link href="/dashboard/notes" className="ds-card ds-shortcut"><FileText size={20} /><span><b>Class notes</b><small>Notes and attachments</small></span><ArrowRight size={17} /></Link>
+            <Link href="/dashboard/pyq-zone" className="ds-card ds-shortcut"><Orbit size={20} /><span><b>PYQ Zone</b><small>JEE Main & Advanced • all subjects</small></span><ArrowRight size={17} /></Link>
           </section>
           {message && <p className="ds-msg" role="status">{message}</p>}
 

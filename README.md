@@ -11,6 +11,7 @@ This is a deployable starting point for a cosmic-style study app. It uses the ex
 - Admin overview (`/admin`) with a read-only view of recent study entries
 - Admin-authored single-correct, multiple-correct, and match-the-columns questions at `/admin/tests`
 - Student practice tests in a JEE-style CBT portal with a configurable countdown, question palette, Mark for Review, Save & Next, and saved scores
+- Cosmic PYQ Zone for published JEE Main and Advanced questions, with subject/year/topic search and protected answer explanations
 - Optional private question images uploaded by admins
 - Supabase Row Level Security (RLS) policies
 - No hard-coded admin credentials
@@ -31,6 +32,10 @@ This is a deployable starting point for a cosmic-style study app. It uses the ex
 To enable the student video and notes libraries, run `supabase/learning_content.sql` once in the Supabase SQL Editor after the main schema. This creates the RLS-protected content tables and a private `learning-content` storage bucket. Admins can add YouTube links or MP4 videos and create text notes with optional JPEG, MP4, or PDF attachments. Students see only published items.
 
 The storage bucket accepts files up to 200 MB, subject to the upload limit configured for your Supabase project.
+
+## JEE PYQ Zone
+
+Run `supabase/pyq_zone.sql` in the Supabase SQL Editor after `supabase/schema.sql` and `supabase/tests.sql`. The question catalog starts empty: add only question text and solutions that you own or are licensed to redistribute, preserve the source name and URL, then set `published` to `true`. Students can read published questions; answer keys remain restricted and are returned one question at a time through `get_pyq_answer`.
 
 ## 2. Run locally
 Install Node.js (current LTS), then in this folder:
