@@ -73,3 +73,4 @@ Never use a shared demo password or trust a role supplied by the browser. The da
 - OAuth/email confirmation flows may need callback routes and redirect settings customized to your project.
 - AI tutor/API keys, general file uploads, password reset, and advanced analytics are not included yet.
 
+
