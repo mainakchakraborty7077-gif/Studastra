@@ -67,3 +67,4 @@ as $$
 $$;
 revoke all on function public.get_pyq_answer(uuid) from public, anon;
 grant execute on function public.get_pyq_answer(uuid) to authenticated;
+
