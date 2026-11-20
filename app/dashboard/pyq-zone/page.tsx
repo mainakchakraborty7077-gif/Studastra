@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Atom, BookOpen, ChevronDown, CircleHelp, Orbit, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Atom, ChevronDown, CircleHelp, Orbit, Search, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 import TwinkleStars from "@/components/TwinkleStars";
@@ -15,7 +15,6 @@ type Question = {
   answer: string | number | null; explanation?: string; source_page?: number;
 };
 
-const subjects = ["Physics", "Chemistry", "Mathematics"];
 const exams = ["JEE Main", "JEE Advanced"] as const;
 const yearRanges = [1, 5, 10, 15, 20, 25];
 
@@ -23,7 +22,6 @@ export default function PyqZonePage() {
   const router = useRouter();
   const [items, setItems] = useState<Question[]>([]);
   const [exam, setExam] = useState<(typeof exams)[number]>("JEE Main");
-  const [subject, setSubject] = useState("All subjects");
   const [chapter, setChapter] = useState("All chapters");
   const [yearRange, setYearRange] = useState<number | null>(null);
   const [year, setYear] = useState("All years");
@@ -57,19 +55,23 @@ export default function PyqZonePage() {
     return () => { active = false; };
   }, [router]);
 
-  useEffect(() => { setVisibleCount(50); }, [exam, subject, chapter, year, yearRange, search]);
+  useEffect(() => { setVisibleCount(50); }, [exam, chapter, year, yearRange, search]);
 
   const years = useMemo(() => [...new Set(items.filter(q => q.exam === exam).map(q => q.year))].sort((a, b) => b - a), [items, exam]);
-  const chapters = useMemo(() => [...new Set(items.filter(q => q.exam === exam && (subject === "All subjects" || q.subject === subject)).map(q => q.topic).filter((x): x is string => Boolean(x)))].sort(), [items, exam, subject]);
+  const chapterCounts = useMemo(() => items.reduce((counts, q) => {
+    if (q.exam === exam && q.topic) counts.set(q.topic, (counts.get(q.topic) || 0) + 1);
+    return counts;
+  }, new Map<string, number>()), [items, exam]);
+  const chapters = useMemo(() => [...chapterCounts.keys()].sort(), [chapterCounts]);
   const filtered = useMemo(() => {
     const cutoff = yearRange ? new Date().getFullYear() - yearRange + 1 : null;
-    return items.filter(q => q.exam === exam && (subject === "All subjects" || q.subject === subject) && (chapter === "All chapters" || q.topic === chapter) && (year === "All years" || String(q.year) === year) && (cutoff === null || q.year >= cutoff) && (!search || `${q.prompt} ${q.topic || ""} ${q.subject}`.toLowerCase().includes(search.toLowerCase())));
-  }, [items, exam, subject, chapter, year, yearRange, search]);
+    return items.filter(q => q.exam === exam && (chapter === "All chapters" || q.topic === chapter) && (year === "All years" || String(q.year) === year) && (cutoff === null || q.year >= cutoff) && (!search || `${q.prompt} ${q.topic || ""} ${q.subject}`.toLowerCase().includes(search.toLowerCase())));
+  }, [items, exam, chapter, year, yearRange, search]);
 
   function reveal(questionId: string) { setOpen(open === questionId ? null : questionId); }
 
   return <div className="pyq-shell">
-    <style>{styles}{extraStyles}</style><TwinkleStars />
+    <style>{styles}{extraStyles}{chapterStyles}</style><TwinkleStars />
     <header className="pyq-top"><Link href="/dashboard" aria-label="Back to dashboard" className="back"><ArrowLeft size={18} /></Link><Link href="/dashboard" className="brand"><span className="brand-orbit"><Orbit size={20}/></span><b>StudAstra</b></Link><span className="top-label">PRACTICE UNIVERSE</span><ProfileMenu className="profile" /></header>
     <main className="pyq-content">
       <div className="eyebrow"><Sparkles size={14}/> THE PYQ ZONE</div>
@@ -78,10 +80,15 @@ export default function PyqZonePage() {
         <div className="solar" aria-hidden="true"><i className="ring ring-one"/><i className="ring ring-two"/><i className="sun"><Atom size={25}/></i><i className="planet planet-a"/><i className="planet planet-b"/><i className="planet planet-c"/></div>
       </div>
       <div className="exam-tabs" role="tablist" aria-label="Choose exam">{exams.map((x, n) => <button key={x} role="tab" aria-selected={exam === x} className={exam === x ? "selected" : ""} onClick={() => { setExam(x); setYear("All years"); }}><span className="tab-orbit">{n === 0 ? "◉" : "✦"}</span>{x}<small>{x === "JEE Main" ? "01" : "02"}</small></button>)}</div>
+      <section className="chapter-section" aria-label="Choose a Chemistry chapter">
+        <div className="chapter-heading"><div><span>STUDY BY CHAPTER</span><h2>Chemistry chapters</h2></div><small>{chapters.length} chapters</small></div>
+        <div className="chapter-grid">
+          <button className={`chapter-card all-chapters ${chapter === "All chapters" ? "selected" : ""}`} aria-pressed={chapter === "All chapters"} onClick={() => setChapter("All chapters")}><b>All chapters</b><span>{items.filter(q => q.exam === exam).length} questions</span></button>
+          {chapters.map(name => <button key={name} className={`chapter-card ${chapter === name ? "selected" : ""}`} aria-pressed={chapter === name} onClick={() => setChapter(name)}><b>{name}</b><span>{chapterCounts.get(name)} questions</span></button>)}
+        </div>
+      </section>
       <section className="filter-panel" aria-label="Filter questions">
         <label className="search"><Search size={17}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search a topic or question" /></label>
-        <label className="select-wrap"><BookOpen size={16}/><select value={subject} onChange={e => setSubject(e.target.value)}><option>All subjects</option>{subjects.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={15}/></label>
-        <label className="select-wrap"><select value={chapter} onChange={e => setChapter(e.target.value)}><option>All chapters</option>{chapters.map(x => <option key={x}>{x}</option>)}</select><ChevronDown size={15}/></label>
         <label className="select-wrap"><select value={year} onChange={e => setYear(e.target.value)}><option>All years</option>{years.map(y => <option key={y}>{y}</option>)}</select><ChevronDown size={15}/></label>
         <span className="count">{filtered.length} {filtered.length === 1 ? "question" : "questions"}</span>
       </section>
@@ -92,12 +99,12 @@ export default function PyqZonePage() {
         <div className="q-meta"><span className="q-num">{String(q.question_number).padStart(2, "0")}</span><span>{q.subject}</span>{q.topic && <><i/> <span>{q.topic}</span></>}<b>{q.year}{q.paper ? ` · ${q.paper}` : ""}</b></div>
         <p className="prompt">{q.prompt}</p>
         <div className="options">{q.options.map((o, oi) => <div className="option" key={oi}><span>{String.fromCharCode(65 + oi)}</span>{o}</div>)}</div>
-        <div className="attribution">Source: {q.source_url ? <a href={q.source_url} target="_blank" rel="noreferrer">{q.source_name}{q.source_page ? ` · PDF page ${q.source_page}` : ""} <ArrowUpRight size={12}/></a> : q.source_name}</div>
+        {q.source_url && <a className="question-page-link" href={q.source_url} target="_blank" rel="noreferrer">View full question <ArrowUpRight size={13}/></a>}
         <button className="answer-toggle" onClick={() => reveal(q.id)}>{open === q.id ? "Hide answer" : "Show answer"}<ChevronDown size={16} className={open === q.id ? "turned" : ""}/></button>
         {open === q.id && <div className="answer"><b>Answer</b><p>{q.answer ?? "Not available in the answer key."}</p>{q.explanation && <p>{q.explanation}</p>}</div>}
       </article>)}</div>}
       {!status && filtered.length > visibleCount && <button className="load-more" onClick={() => setVisibleCount(n => n + 50)}>Load more questions</button>}
-      <footer>Answer keys are attributed to their source. Open a full question page for its diagrams and figures. <Link href="/dashboard/tests">Open practice tests <ArrowUpRight size={13}/></Link></footer>
+      <footer>Pick a chapter to practise its PYQs. <Link href="/dashboard/tests">Open practice tests <ArrowUpRight size={13}/></Link></footer>
     </main>
   </div>;
 }
@@ -107,4 +114,8 @@ const styles = `
 `;
 const extraStyles = `
 .year-ranges{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:16px 2px 0}.year-ranges span{font-size:9px;letter-spacing:.14em;color:#63828f;margin-right:4px}.year-ranges button{border:1px solid rgba(166,215,231,.12);border-radius:99px;padding:7px 11px;background:rgba(12,23,32,.65);color:#91a9b4;font:inherit;font-size:11px;cursor:pointer}.year-ranges button:hover,.year-ranges button.active{color:#e8fcff;border-color:#3db7c7;background:#12313b}.load-more{display:block;margin:18px auto 0;border:1px solid #3db7c7;border-radius:12px;padding:11px 18px;background:#12313b;color:#dffaff;font:inherit;cursor:pointer}.load-more:disabled{opacity:.65;cursor:wait}
+`;
+
+const chapterStyles = `
+.chapter-section{margin:0 0 18px;padding:16px;border:1px solid rgba(190,229,242,.1);border-radius:16px;background:rgba(12,23,32,.58)}.chapter-heading{display:flex;align-items:center;justify-content:space-between;margin:0 2px 13px}.chapter-heading>div>span{font-size:9px;letter-spacing:.15em;color:#6c9ba8}.chapter-heading h2{margin:3px 0 0;font-size:17px;color:#e7f6fa}.chapter-heading>small{color:#698895;font-size:11px}.chapter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.chapter-card{min-height:66px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:10px 12px;border:1px solid rgba(171,216,232,.1);border-radius:11px;background:rgba(8,18,26,.76);color:#d6e7eb;text-align:left;font:inherit;cursor:pointer;transition:border-color .18s,background .18s,transform .18s}.chapter-card:hover{border-color:#3e9dac;background:#112a35;transform:translateY(-1px)}.chapter-card.selected{border-color:#46c3d2;background:linear-gradient(115deg,#123846,#142735);box-shadow:0 0 18px #34d4e510}.chapter-card b{font-size:12px;font-weight:600;line-height:1.3}.chapter-card span{color:#77949e;font-size:10px}.question-page-link{display:inline-flex;align-items:center;gap:5px;margin-top:2px;color:#70cfdb;text-decoration:none;font-size:11px}.question-page-link:hover{color:#a3f4fa}@media(max-width:850px){.chapter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){.chapter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.chapter-section{padding:12px}.chapter-card{min-height:62px;padding:9px}.chapter-card b{font-size:11px}}
 `;
