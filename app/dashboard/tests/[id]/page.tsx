@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, Flag, Image as ImageIcon, Info, Send, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import TwinkleStars from "@/components/TwinkleStars";
 
 type TestInfo = { id: string; title: string; description: string; duration_minutes: number };
 type QuestionType = "single_correct" | "multiple_correct" | "match_columns";
@@ -192,7 +193,8 @@ export default function TakeTestPage() {
   const unansweredCount = Math.max(0, questions.length - answeredCount);
   const clock = secondsLeft === null ? "--:--" : `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
-  return <main className="exam-page">
+  return <main className="exam-page exam-cosmic">
+    <TwinkleStars />
     <header className="exam-topbar"><Link className="brand" href="/dashboard"><img className="logo logo-img" src="/logo.png" alt="StudAstra" /> StudAstra <span className="exam-label">JEE CBT PRACTICE</span></Link><div className="exam-title">{test?.title || "Practice exam"}</div><div className={`exam-clock ${secondsLeft !== null && secondsLeft < 300 ? "exam-clock-low" : ""}`} aria-live="polite"><Clock3 size={17}/><span>Time Left&nbsp; {clock}</span></div><div className="exam-toplinks"><span><BookOpen size={14}/> Question Paper</span><span><Info size={14}/> Instructions</span></div></header>
     {result ? <section className="exam-result"><span className="pill">EXAM COMPLETE</span><h1>Your score: {result.score} / {result.total}</h1>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10, margin: "18px 0", textAlign: "center" }}>
@@ -202,7 +204,7 @@ export default function TakeTestPage() {
         <div><b style={{ fontSize: 22 }}>{result.attempted ? `${Math.round((result.score / result.attempted) * 1000) / 10}%` : "—"}</b><br/><span className="muted">Accuracy</span></div>
         {result.timeTaken !== null && <div><b style={{ fontSize: 22 }}>{Math.floor(result.timeTaken / 60)}m {String(result.timeTaken % 60).padStart(2, "0")}s</b><br/><span className="muted">Time taken</span></div>}
       </div>
-      <p className="muted">This attempt is saved to your report card.</p><div className="row" style={{ justifyContent: "center", gap: 10 }}><Link className="btn primary" href="/dashboard/tests#report-card">View report card &amp; leaderboard</Link><Link className="btn" style={{ color: "#323b52", borderColor: "#d8ddea", background: "white" }} href="/dashboard/tests">Back to practice tests</Link></div></section> : <div className="exam-layout">
+      <p className="muted">This attempt is saved to your report card.</p><div className="row" style={{ justifyContent: "center", gap: 10 }}><Link className="btn primary" href="/dashboard/tests#report-card">View report card &amp; leaderboard</Link><Link className="btn" href="/dashboard/tests">Back to practice tests</Link></div></section> : <div className="exam-layout">
       <section className="exam-main">
         <div className="exam-subjectbar"><span className="exam-subject">Practice Test <Info size={13}/></span><span className="exam-subject-help">{test?.title}</span></div>
         <div className="exam-sectionbar"><span>Q. No: {questions.length ? current + 1 : "—"} &nbsp; · &nbsp; Test size: {questions.length}</span><span>Q. Type : <b>{question?.question_type === "multiple_correct" ? "MCQ Multiple" : question?.question_type === "match_columns" ? "Match Columns" : "MCQ Single"}</b></span></div>

@@ -6,6 +6,7 @@ import { ArrowRight, BookOpen, ClipboardCheck, FileText, Flame, LayoutDashboard,
 import { createClient } from "@/lib/supabase/client";
 import ProfileMenu from "@/components/ProfileMenu";
 import TwinkleStars from "@/components/TwinkleStars";
+import StudyOath from "@/components/StudyOath";
 
 type StudyItem = { id: string; title: string; body: string; kind: "goal" | "note"; created_at: string };
 
@@ -106,6 +107,7 @@ export default function Dashboard() {
   return (
     <div className="ds-shell">
       <style>{css}</style>
+      <StudyOath />
       <TwinkleStars />
       <aside className="ds-side">
         <Link href="/" className="ds-logo"><img className="ds-mark" src="/logo.png" alt="StudAstra" /><b>StudAstra</b></Link>

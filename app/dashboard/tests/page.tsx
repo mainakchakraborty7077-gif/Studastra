@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Award, BarChart3, CheckCircle2, ClipboardList, Clock3, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import TwinkleStars from "@/components/TwinkleStars";
 
 type TestRow = { id: string; title: string; description: string; created_at: string; duration_minutes: number };
 type Attempt = {
@@ -170,7 +171,7 @@ export default function PracticeTestsPage() {
     return ids.sort((a, b) => (byTest.get(b)![0].completed_at.localeCompare(byTest.get(a)![0].completed_at)));
   }, [byTest]);
 
-  return <main className="wrap" style={{ paddingTop: 24, paddingBottom: 60 }}>
+  return <><TwinkleStars /><main className="wrap" style={{ paddingTop: 24, paddingBottom: 60, position: "relative", zIndex: 1 }}>
     <style>{styles}</style>
     <header className="nav" style={{ height: 64 }}><Link className="brand" href="/dashboard"><img className="logo logo-img" src="/logo.png" alt="StudAstra" /> StudAstra</Link><Link className="btn small" href="/dashboard"><ArrowLeft size={14}/> Dashboard</Link></header>
     <section><span className="pill"><ClipboardList size={14}/> PRACTICE TESTS</span><h1 style={{ fontSize: 38, marginBottom: 4 }}>Test your understanding</h1><p className="muted">Choose a practice test and get your score as soon as you submit. Every attempt is saved to your report card below.</p>{message && <p className="muted" role="status">{message}</p>}
@@ -245,5 +246,5 @@ export default function PracticeTestsPage() {
         </tr>)}</tbody>
       </table></div>}
     </section>
-  </main>;
+  </main></>;
 }

@@ -51,3 +51,44 @@
 
 
 .logo-img{background:none!important;box-shadow:0 0 18px #22d3ee33;border-radius:50%!important;object-fit:cover;padding:0}
+/* Cosmic theme for the test portal question screens (same starry sky as the rest of the site) */
+.exam-page.exam-cosmic{position:relative;background:radial-gradient(ellipse at 78% 5%,#32205e66,transparent 34%),radial-gradient(ellipse at 10% 38%,#172e5666,transparent 34%),var(--bg);background-attachment:fixed;color:var(--text)}
+.exam-cosmic .exam-topbar,.exam-cosmic .exam-layout,.exam-cosmic .exam-result,.exam-cosmic .exam-footer{position:relative;z-index:1}
+.exam-cosmic .exam-topbar{background:rgba(9,11,28,.82);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.exam-cosmic .exam-layout{background:transparent}
+.exam-cosmic .exam-main{background:rgba(13,16,38,.55);color:var(--text)}
+.exam-cosmic .exam-sidebar{background:rgba(17,21,43,.82);border-left:1px solid #ffffff22;backdrop-filter:blur(8px)}
+.exam-cosmic .exam-subjectbar,.exam-cosmic .exam-sectionbar{border-bottom-color:var(--line)}
+.exam-cosmic .exam-subject-help,.exam-cosmic .exam-sectionbar{color:#c9cce0}
+.exam-cosmic .exam-sectionbar b{color:#ffb39e}
+.exam-cosmic .exam-question-count{color:#fff}
+.exam-cosmic .muted{color:var(--muted)}
+.exam-cosmic .exam-prompt{color:#f5f5ff;font-size:17px}
+.exam-cosmic .exam-image{background:#fff;padding:6px;border-radius:8px}
+.exam-cosmic .exam-options{gap:8px}
+.exam-cosmic .exam-option{background:rgba(255,255,255,.045);color:#eceefb;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.exam-cosmic .exam-option:hover{background:rgba(156,131,255,.12);border-color:#9c83ff66}
+.exam-cosmic .exam-option.selected{background:rgba(112,216,239,.14);border-color:#70d8efaa;box-shadow:0 0 18px #70d8ef22}
+.exam-cosmic .exam-option-key{color:#eceefb!important}
+.exam-cosmic .exam-option-key:before{background:transparent;border-color:#8b90b8}
+.exam-cosmic .exam-option.selected .exam-option-key:before{border-color:#70d8ef;background:#70d8ef;box-shadow:inset 0 0 0 3px #0d1026}
+.exam-cosmic .exam-option.selected .exam-option-key.checkbox:before{box-shadow:inset 0 0 0 2px #0d1026}
+.exam-cosmic .exam-status-legend{background:transparent;color:#d6d9ee}
+.exam-cosmic .exam-number.not-visited,.exam-cosmic .exam-status-legend i.not-visited{background:#2a2f52;color:#dfe2f5;border-color:#454b78}
+.exam-cosmic .exam-counts{border-top-color:var(--line)}
+.exam-cosmic .exam-counts span{color:var(--muted)}
+.exam-cosmic .exam-counts b{color:#fff}
+.exam-cosmic .exam-actionbar{background:rgba(9,11,28,.92);border-top:1px solid #ffffff22;box-shadow:0 -6px 20px #0006;backdrop-filter:blur(8px)}
+.exam-cosmic .exam-action.secondary{background:rgba(255,255,255,.06);color:#eceefb;border-color:#ffffff2a}
+.exam-cosmic .exam-match-grid{border-color:#ffffff22;background:rgba(255,255,255,.03)}
+.exam-cosmic .exam-match-head{background:rgba(255,255,255,.07);border-bottom-color:#ffffff22;color:#e6e8f8}
+.exam-cosmic .exam-match-row{border-bottom-color:var(--line);color:#eceefb}
+.exam-cosmic .exam-match-select{background:#0d1026;color:#eceefb;border-color:#ffffff2a}
+.exam-cosmic .exam-match-select option{background:#141834;color:#eceefb}
+.exam-cosmic .exam-result{background:rgba(17,21,43,.88);border:1px solid #ffffff22;color:var(--text);backdrop-filter:blur(8px)}
+.exam-cosmic .exam-result h1{color:#fff}
+.exam-cosmic .exam-modal{background:#141834;color:var(--text);border:1px solid #ffffff22}
+.exam-cosmic .exam-modal p{color:var(--muted)}
+.exam-cosmic .exam-modal .btn{color:var(--text);border-color:#ffffff2a;background:#ffffff0a}
+.exam-cosmic .exam-modal .btn.primary{color:#fff;background:linear-gradient(110deg,#8a72f7,#c779e8);border:0}
+@media(max-width:760px){.exam-cosmic .exam-sidebar{border-left:0;border-bottom:1px solid #ffffff22}}

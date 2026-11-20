@@ -108,6 +108,7 @@ export default function ProfilePage() {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    try { sessionStorage.removeItem("studastra-oath-done"); } catch {}
     router.push("/auth");
     router.refresh();
   }

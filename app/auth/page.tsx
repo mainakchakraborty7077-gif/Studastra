@@ -67,6 +67,7 @@ export default function AuthPage() {
         });
         if (error) throw error;
         if (data.session) {
+          try { sessionStorage.removeItem("studastra-oath-done"); } catch {}
           router.push("/dashboard");
           router.refresh();
           return;
@@ -80,6 +81,7 @@ export default function AuthPage() {
           password,
         });
         if (error) throw error;
+        try { sessionStorage.removeItem("studastra-oath-done"); } catch {}
         router.push("/dashboard");
         router.refresh();
         return;
