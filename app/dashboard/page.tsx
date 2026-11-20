@@ -253,3 +253,4 @@ const css = `
 @media(max-width:860px){.ds-shell{flex-direction:column}.ds-side{width:100%;height:auto;position:sticky;top:0;z-index:5;flex-direction:row;align-items:center;gap:8px;padding:8px 10px;border-right:0;border-bottom:1px solid rgba(255,255,255,.07)}.ds-logo{padding:0;flex-shrink:0}.ds-logo b{display:none}.ds-mark{width:34px;height:34px}.ds-tag{display:none}.ds-nav{flex-direction:row;overflow-x:auto;gap:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.ds-nav::-webkit-scrollbar{display:none}.ds-link{flex-shrink:0;white-space:nowrap;padding:8px 13px;font-size:13px;gap:7px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}.ds-link em{margin-left:4px}.ds-shortcuts{grid-template-columns:1fr}.ds-cards3,.ds-two{grid-template-columns:1fr}.ds-top{padding:12px 16px}.ds-page{padding:20px 16px 60px}.ds-hello{font-size:26px}.ds-continue{flex-direction:column;align-items:flex-start}}
 `;
 
+
